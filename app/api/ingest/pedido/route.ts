@@ -11,9 +11,12 @@ const MIMES_OK = new Set([
   'image/gif',
   'application/pdf',
 ]);
-const MAX_ARQUIVO = 10 * 1024 * 1024; // 10 MB
-const MAX_BODY = 20 * 1024 * 1024;
-const LIMITE_HORA = 200;
+const MAX_ARQUIVO = 10 * 1024 * 1024; // 10 MB por arquivo
+const MAX_ARQUIVOS = 6; // no máximo 6 imagens por pedido
+const MAX_BODY = 40 * 1024 * 1024;
+const LIMITE_HORA = 200; // por conta (todos os canais somados)
+const LIMITE_TOKEN = 120; // por token, por hora
+const FORMAS = new Set(['dinheiro', 'pix', 'debito', 'credito', 'outro']);
 
 function cors(origin: string | null) {
   const permitido =
@@ -72,15 +75,26 @@ export async function POST(request: Request) {
 
   const { data: tok } = await admin
     .from('ingest_tokens')
-    .select('id, user_id')
+    .select('id, user_id, expira_em, janela_inicio, janela_contagem')
     .eq('token_hash', hash)
     .maybeSingle();
   if (!tok) return json({ erro: 'token inválido' }, 401, origin);
+  if (tok.expira_em && new Date(tok.expira_em as string) < new Date()) {
+    return json({ erro: 'token expirado — gere um novo em Configurações' }, 401, origin);
+  }
 
   const userId = tok.user_id as string;
+  const agora = Date.now();
 
-  // rate limit simples
-  const desde = new Date(Date.now() - 3600_000).toISOString();
+  // limite POR TOKEN: janela deslizante de 1h, LIMITE_TOKEN pedidos.
+  const janelaAberta = agora - new Date(tok.janela_inicio as string).getTime() < 3600_000;
+  const contagem = janelaAberta ? (tok.janela_contagem as number) : 0;
+  if (contagem >= LIMITE_TOKEN) {
+    return json({ erro: 'limite por hora do token atingido' }, 429, origin);
+  }
+
+  // backstop POR CONTA (soma de todos os tokens/canais): LIMITE_HORA.
+  const desde = new Date(agora - 3600_000).toISOString();
   const { count } = await admin
     .from('pedidos')
     .select('id', { count: 'exact', head: true })
@@ -88,7 +102,7 @@ export async function POST(request: Request) {
     .in('origem', ['whatsapp', 'whatsapp_ext'])
     .gte('created_at', desde);
   if ((count ?? 0) >= LIMITE_HORA) {
-    return json({ erro: 'limite por hora atingido' }, 429, origin);
+    return json({ erro: 'limite por hora da conta atingido' }, 429, origin);
   }
 
   const clienteNome = texto(body.cliente, 200) ?? 'Pedido WhatsApp';
@@ -96,6 +110,12 @@ export async function POST(request: Request) {
   const observacoes = texto(body.observacoes, 2000);
   const prazoRaw = texto(body.prazo, 10);
   const prazo = prazoRaw && /^\d{4}-\d{2}-\d{2}$/.test(prazoRaw) ? prazoRaw : null;
+
+  const formaRaw = texto(body.forma_pagamento, 20);
+  const formaPagamento = formaRaw && FORMAS.has(formaRaw) ? formaRaw : null;
+
+  // valor total informado no painel — vira preço do primeiro item quando ele não tem preço
+  const valorTotal = numero(body.valor, 0, 0);
 
   const itensIn = Array.isArray(body.itens) ? body.itens.slice(0, 50) : [];
   const itens = itensIn
@@ -111,6 +131,14 @@ export async function POST(request: Request) {
     })
     .filter((i) => i.descricao);
 
+  if (valorTotal > 0) {
+    if (itens.length && itens[0].preco_unitario === 0) {
+      itens[0].preco_unitario = valorTotal;
+    } else if (!itens.length) {
+      itens.push({ descricao: 'Pedido', quantidade: 1, preco_unitario: valorTotal, ordem: 0 });
+    }
+  }
+
   const { data: pedido, error: e1 } = await admin
     .from('pedidos')
     .insert({
@@ -121,6 +149,7 @@ export async function POST(request: Request) {
       origem_texto: mensagem,
       observacoes,
       prazo,
+      forma_pagamento: formaPagamento,
     })
     .select('id, numero')
     .single();
@@ -134,36 +163,47 @@ export async function POST(request: Request) {
       .insert(itens.map((i) => ({ ...i, pedido_id: pedido.id, user_id: userId })));
   }
 
-  // arquivo (arte) opcional
-  const arq = body.arquivo as Record<string, unknown> | undefined;
-  let arquivoSalvo = false;
-  if (arq && typeof arq.base64 === 'string' && typeof arq.mime === 'string') {
-    if (MIMES_OK.has(arq.mime)) {
-      const buf = Buffer.from(arq.base64, 'base64');
-      if (buf.byteLength > 0 && buf.byteLength <= MAX_ARQUIVO) {
-        const nomeSeguro = (texto(arq.nome, 120) ?? 'arte')
-          .replace(/[^\w.\- ]+/g, '_')
-          .slice(0, 120);
-        const path = `${userId}/${pedido.id}/${Date.now()}-${nomeSeguro}`;
-        const up = await admin.storage
-          .from('pedido-arquivos')
-          .upload(path, buf, { contentType: arq.mime, upsert: false });
-        if (!up.error) {
-          await admin.from('pedido_arquivos').insert({
-            pedido_id: pedido.id,
-            user_id: userId,
-            path,
-            nome: nomeSeguro,
-            mime: arq.mime,
-            tamanho: buf.byteLength,
-          });
-          arquivoSalvo = true;
-        }
-      }
-    }
+  // arte opcional — aceita `arquivos: [...]` (novo) ou `arquivo: {...}` (antigo)
+  const entrada = Array.isArray(body.arquivos)
+    ? body.arquivos
+    : body.arquivo
+      ? [body.arquivo]
+      : [];
+  const candidatos = entrada.slice(0, MAX_ARQUIVOS) as Record<string, unknown>[];
+
+  let arquivosSalvos = 0;
+  for (const arq of candidatos) {
+    if (!arq || typeof arq.base64 !== 'string' || typeof arq.mime !== 'string') continue;
+    if (!MIMES_OK.has(arq.mime)) continue;
+    const buf = Buffer.from(arq.base64, 'base64');
+    if (buf.byteLength === 0 || buf.byteLength > MAX_ARQUIVO) continue;
+    const nomeSeguro = (texto(arq.nome, 120) ?? 'arte')
+      .replace(/[^\w.\- ]+/g, '_')
+      .slice(0, 120);
+    const path = `${userId}/${pedido.id}/${Date.now()}-${arquivosSalvos}-${nomeSeguro}`;
+    const up = await admin.storage
+      .from('pedido-arquivos')
+      .upload(path, buf, { contentType: arq.mime, upsert: false });
+    if (up.error) continue;
+    await admin.from('pedido_arquivos').insert({
+      pedido_id: pedido.id,
+      user_id: userId,
+      path,
+      nome: nomeSeguro,
+      mime: arq.mime,
+      tamanho: buf.byteLength,
+    });
+    arquivosSalvos += 1;
   }
 
-  await admin.from('ingest_tokens').update({ last_used_at: new Date().toISOString() }).eq('id', tok.id);
+  await admin
+    .from('ingest_tokens')
+    .update({
+      last_used_at: new Date().toISOString(),
+      janela_inicio: janelaAberta ? (tok.janela_inicio as string) : new Date(agora).toISOString(),
+      janela_contagem: contagem + 1,
+    })
+    .eq('id', tok.id);
 
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? '';
   return json(
@@ -171,7 +211,8 @@ export async function POST(request: Request) {
       ok: true,
       id: pedido.id,
       numero: pedido.numero,
-      arquivo: arquivoSalvo,
+      arquivos: arquivosSalvos,
+      arquivo: arquivosSalvos > 0,
       url: base ? `${base}/pedidos/${pedido.id}` : undefined,
     },
     201,

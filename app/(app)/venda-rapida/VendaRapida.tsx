@@ -38,15 +38,25 @@ const PAGAMENTOS: { valor: string; label: string }[] = [
 const brl = (v: number) =>
   Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const brlFn = (v: number) =>
+  Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
 export default function VendaRapida({
   servicos,
   caixaAberto,
   erroCarregar,
+  papel = 'dono',
+  meuTotalHoje = 0,
+  meuQtdHoje = 0,
 }: {
   servicos: ServicoVenda[];
   caixaAberto: boolean;
   erroCarregar: string | null;
+  papel?: 'dono' | 'funcionario';
+  meuTotalHoje?: number;
+  meuQtdHoje?: number;
 }) {
+  const ehFuncionario = papel === 'funcionario';
   const router = useRouter();
   const supabase = createClient();
 
@@ -187,7 +197,17 @@ export default function VendaRapida({
         </div>
       )}
 
-      {!caixaAberto && !erroCarregar && (
+      {ehFuncionario && (
+        <div className="vr-meudia">
+          <span>Minhas vendas hoje</span>
+          <strong>{brlFn(meuTotalHoje)}</strong>
+          <small>
+            {meuQtdHoje} {meuQtdHoje === 1 ? 'venda' : 'vendas'}
+          </small>
+        </div>
+      )}
+
+      {!ehFuncionario && !caixaAberto && !erroCarregar && (
         <div className="cl-banner vr-aviso">
           <AlertTriangle size={18} aria-hidden="true" />
           <div>
@@ -350,7 +370,7 @@ export default function VendaRapida({
                 />
               </label>
 
-              {!caixaAberto && (
+              {!ehFuncionario && !caixaAberto && (
                 <p className="cl-form-err" style={{ color: '#9a5b00' }}>
                   O caixa está fechado — a venda não será lançada nele.
                 </p>

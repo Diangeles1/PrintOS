@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
+import { requireDono } from '@/lib/equipe';
 
 import OrcamentosList, { type OrcamentoLista } from './OrcamentosList';
 
 export default async function OrcamentosPage() {
+  await requireDono();
   const supabase = await createClient();
   const [{ data, error }, { data: empresa }] = await Promise.all([
     supabase

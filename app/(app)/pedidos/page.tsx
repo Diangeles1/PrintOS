@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
+import { requireDono } from '@/lib/equipe';
 
 import PedidosList, { type PedidoLista } from './PedidosList';
 
 export default async function PedidosPage() {
+  await requireDono();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('pedidos')

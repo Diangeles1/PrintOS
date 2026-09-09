@@ -2,8 +2,9 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Loader2, Pencil, Plus, Search, Trash2, Boxes, X } from 'lucide-react';
+import { AlertTriangle, Loader2, Pencil, Plus, Search, Sparkles, Trash2, Boxes, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { CATALOGO_MATERIAIS } from '@/lib/catalogo';
 
 export type Material = {
   id: string;
@@ -71,6 +72,35 @@ export default function MateriaisView({
   const [erroForm, setErroForm] = useState<string | null>(null);
   const [confirmar, setConfirmar] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedMsg, setSeedMsg] = useState<string | null>(null);
+
+  async function catalogoSugerido() {
+    setSeeding(true);
+    setSeedMsg(null);
+    const jaTem = new Set(initial.map((m) => m.nome.trim().toLowerCase()));
+    const novos = CATALOGO_MATERIAIS.filter((m) => !jaTem.has(m.nome.toLowerCase())).map((m) => ({
+      nome: m.nome,
+      categoria: m.categoria,
+      unidade: m.unidade,
+      custo: m.custo,
+      estoque: 0,
+      estoque_minimo: 0,
+    }));
+    if (novos.length === 0) {
+      setSeeding(false);
+      setSeedMsg('Todos os itens do catálogo sugerido já estão cadastrados.');
+      return;
+    }
+    const { error } = await supabase.from('materiais').insert(novos);
+    setSeeding(false);
+    if (error) {
+      setSeedMsg(`Não foi possível adicionar. ${error.message}`);
+      return;
+    }
+    setSeedMsg(`${novos.length} materiais adicionados. Ajuste custos e estoque como quiser.`);
+    router.refresh();
+  }
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -188,11 +218,30 @@ export default function MateriaisView({
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
+        <button
+          type="button"
+          className="btn secondary"
+          onClick={catalogoSugerido}
+          disabled={!!erroCarregar || seeding}
+          title="Adiciona materiais comuns de gráfica, pulando os que já existem"
+        >
+          {seeding ? (
+            <Loader2 size={16} className="cl-spin" aria-hidden="true" />
+          ) : (
+            <Sparkles size={16} aria-hidden="true" />
+          )}
+          Catálogo sugerido
+        </button>
         <button type="button" className="btn" onClick={abrirNovo} disabled={!!erroCarregar}>
           <Plus size={16} aria-hidden="true" />
           Novo material
         </button>
       </div>
+      {seedMsg && (
+        <p className="login-mensagem" style={{ fontSize: 13, marginTop: -6, marginBottom: 12 }}>
+          {seedMsg}
+        </p>
+      )}
 
       {erroCarregar ? null : initial.length === 0 ? (
         <div className="ax-empty">

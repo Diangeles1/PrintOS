@@ -224,8 +224,10 @@ export default function LoginPage() {
     if (Object.keys(next).length) return;
 
     setCarregando(true);
+    // Passa pelo /auth/callback para trocar o code por sessão (fluxo PKCE)
+    // antes de cair na tela de nova senha.
     await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/redefinir-senha`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/redefinir-senha`,
     });
     setCarregando(false);
     setMensagem('Se esse e-mail existir, enviamos um link de recuperação.');

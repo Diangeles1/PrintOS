@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Sempre roda: tipos + build. Não precisa de segredo.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'placeholder' }}
+
+  # Só roda se os segredos do Supabase estiverem configurados no repositório.
+  testes:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_APP_URL: http://localhost:3100
+      SUPERADMIN_EMAILS: ${{ secrets.SUPERADMIN_EMAILS }}
+      E2E_BASE_URL: http://localhost:3100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verifica segredos
+        id: guard
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "sem segredos do Supabase — pulando testes de banco/E2E"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: npm ci
+        if: steps.guard.outputs.ok == 'true'
+
+      - name: Build
+        if: steps.guard.outputs.ok == 'true'
+        run: npm run build
+
+      - name: Sobe o servidor de produção
+        if: steps.guard.outputs.ok == 'true'
+        run: |
+          npx next start -p 3100 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3100/login > /dev/null && break
+            sleep 2
+          done
+          curl -sf http://localhost:3100/login > /dev/null
+
+      - name: Testes de banco (isolamento + fluxo)
+        if: steps.guard.outputs.ok == 'true'
+        run: APP_URL=http://localhost:3100 npm run test:tudo
+
+      - name: Playwright E2E
+        if: steps.guard.outputs.ok == 'true'
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - name: Sobe o relatório do Playwright
+        if: always() && steps.guard.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

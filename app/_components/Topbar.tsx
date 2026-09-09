@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { FileText, Zap } from 'lucide-react';
 
 const TITULOS: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -33,8 +35,17 @@ export default function Topbar({ user }: { user: { nome: string } }) {
         <i aria-hidden="true">/</i>
         <strong>{secao}</strong>
       </div>
-      <div className="ax-topbar-user">
-        Olá, {primeiroNome(user.nome)}
+
+      <div className="ax-topbar-actions">
+        <Link href="/orcamentos" className="ax-quick">
+          <FileText size={15} aria-hidden="true" />
+          <span>Orçamento</span>
+        </Link>
+        <Link href="/venda-rapida" className="ax-quick ax-quick--primary">
+          <Zap size={15} aria-hidden="true" />
+          <span>Venda rápida</span>
+        </Link>
+        <span className="ax-topbar-user">Olá, {primeiroNome(user.nome)}</span>
       </div>
     </header>
   );

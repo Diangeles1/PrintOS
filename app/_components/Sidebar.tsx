@@ -13,11 +13,15 @@ import {
   Tags,
   Wallet,
   Settings,
+  ShieldAlert,
   LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 type Item = { href: string; label: string; icon: typeof LayoutDashboard };
+
+// telas que o funcionário vê (o resto é só do dono)
+const FUNC_OK = new Set(['/venda-rapida', '/clientes', '/servicos', '/materiais']);
 
 const GRUPOS: { titulo: string; itens: Item[] }[] = [
   {
@@ -52,10 +56,25 @@ function iniciais(nome: string) {
   return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
-export default function Sidebar({ user }: { user: { nome: string; email: string } }) {
+export default function Sidebar({
+  user,
+  superadmin = false,
+  papel = 'dono',
+}: {
+  user: { nome: string; email: string };
+  superadmin?: boolean;
+  papel?: 'dono' | 'funcionario';
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+
+  const grupos =
+    papel === 'funcionario'
+      ? GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => FUNC_OK.has(i.href)) })).filter(
+          (g) => g.itens.length,
+        )
+      : GRUPOS;
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -65,7 +84,7 @@ export default function Sidebar({ user }: { user: { nome: string; email: string 
 
   return (
     <aside className="ax-sidebar">
-      <Link href="/dashboard" className="ax-brand">
+      <Link href={papel === "funcionario" ? "/venda-rapida" : "/dashboard"} className="ax-brand">
         <span className="ax-brand-name">
           Print<span>OS</span>
         </span>
@@ -73,7 +92,7 @@ export default function Sidebar({ user }: { user: { nome: string; email: string 
       </Link>
 
       <nav className="ax-nav">
-        {GRUPOS.map((grupo) => (
+        {grupos.map((grupo) => (
           <div className="ax-nav-group" key={grupo.titulo}>
             <p className="ax-nav-title">{grupo.titulo}</p>
             {grupo.itens.map(({ href, label, icon: Icon }) => {
@@ -92,6 +111,16 @@ export default function Sidebar({ user }: { user: { nome: string; email: string 
             })}
           </div>
         ))}
+
+        {superadmin && (
+          <div className="ax-nav-group">
+            <p className="ax-nav-title">Interno</p>
+            <Link href="/admin" className="ax-nav-link ax-nav-admin">
+              <ShieldAlert size={18} strokeWidth={2} aria-hidden="true" />
+              <span>Console</span>
+            </Link>
+          </div>
+        )}
       </nav>
 
       <div className="ax-user">

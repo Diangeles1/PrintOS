@@ -1,17 +1,3 @@
-#printos-btn-pedido {
-  margin-left: 8px;
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 8px;
-  background: #175bff;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-  align-self: center;
-}
-#printos-btn-pedido:hover {
-  background: #1450e6;
-}
+/* Sem uso: o botão flutuante vive num Shadow DOM isolado e leva o próprio
+   CSS embutido (ver content.js). Mantido só para não quebrar instalações
+   antigas que ainda referenciem este arquivo. */

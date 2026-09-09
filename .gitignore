@@ -20,3 +20,13 @@ service-account*.json
 
 # Supabase CLI / Management API token (local only)
 .supabase/
+
+# Playwright / testes
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/blob-report/
+scripts/_sim-relatorio.json
+
+# Auto Publisher (log local; o lock fica em .git/ e nunca é versionado)
+scripts/.auto-publish.log

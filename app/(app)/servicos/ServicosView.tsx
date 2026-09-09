@@ -2,8 +2,9 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Loader2, Pencil, Plus, Search, Tags, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Loader2, Pencil, Plus, Search, Sparkles, Tags, Trash2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { CATALOGO_SERVICOS } from '@/lib/catalogo';
 
 export type Servico = {
   id: string;
@@ -36,7 +37,15 @@ const VAZIO: FormState = {
 };
 
 const UNIDADES = ['un', 'folha', 'jogo', 'm', 'm²', 'kg', 'h', 'pct', 'cx'];
-const CATEGORIAS = ['Impressão', 'Cópia', 'Comunicação Visual', 'Acabamento', 'Digital', 'Outro'];
+const CATEGORIAS = [
+  'Impressão',
+  'Cópia',
+  'Comunicação Visual',
+  'Acabamento',
+  'Digital',
+  'Documentos',
+  'Outro',
+];
 
 const brl = (v: number) =>
   Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -65,6 +74,34 @@ export default function ServicosView({
   const [erroForm, setErroForm] = useState<string | null>(null);
   const [confirmar, setConfirmar] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedMsg, setSeedMsg] = useState<string | null>(null);
+
+  async function catalogoSugerido() {
+    setSeeding(true);
+    setSeedMsg(null);
+    const jaTem = new Set(initial.map((s) => s.nome.trim().toLowerCase()));
+    const novos = CATALOGO_SERVICOS.filter((s) => !jaTem.has(s.nome.toLowerCase())).map((s) => ({
+      nome: s.nome,
+      categoria: s.categoria,
+      unidade: s.unidade,
+      preco: s.preco,
+      ativo: true,
+    }));
+    if (novos.length === 0) {
+      setSeeding(false);
+      setSeedMsg('Todos os itens do catálogo sugerido já estão cadastrados.');
+      return;
+    }
+    const { error } = await supabase.from('servicos').insert(novos);
+    setSeeding(false);
+    if (error) {
+      setSeedMsg(`Não foi possível adicionar. ${error.message}`);
+      return;
+    }
+    setSeedMsg(`${novos.length} serviços adicionados. Ajuste os preços como quiser.`);
+    router.refresh();
+  }
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -180,11 +217,30 @@ export default function ServicosView({
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
+        <button
+          type="button"
+          className="btn secondary"
+          onClick={catalogoSugerido}
+          disabled={!!erroCarregar || seeding}
+          title="Adiciona serviços comuns de gráfica (incl. documentos), pulando os que já existem"
+        >
+          {seeding ? (
+            <Loader2 size={16} className="cl-spin" aria-hidden="true" />
+          ) : (
+            <Sparkles size={16} aria-hidden="true" />
+          )}
+          Catálogo sugerido
+        </button>
         <button type="button" className="btn" onClick={abrirNovo} disabled={!!erroCarregar}>
           <Plus size={16} aria-hidden="true" />
           Novo serviço
         </button>
       </div>
+      {seedMsg && (
+        <p className="login-mensagem" style={{ fontSize: 13, marginTop: -6, marginBottom: 12 }}>
+          {seedMsg}
+        </p>
+      )}
 
       {erroCarregar ? null : initial.length === 0 ? (
         <div className="ax-empty">

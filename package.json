@@ -6,7 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:isolamento": "node scripts/teste-isolamento.mjs",
+    "test:fluxo": "node scripts/teste-fluxo.mjs",
+    "test:tudo": "node scripts/teste-isolamento.mjs && node scripts/teste-fluxo.mjs && node scripts/teste-equipe.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "simular": "node scripts/simular.mjs",
+    "simular:limpar": "node scripts/simular-limpar.mjs",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "publish:auto": "node scripts/auto-publish.mjs",
+    "publish:once": "node scripts/auto-publish.mjs --once",
+    "publish:dry": "node scripts/auto-publish.mjs --once --dry-run",
+    "test:equipe": "node scripts/teste-equipe.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",
@@ -17,6 +29,7 @@
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",

@@ -10,6 +10,7 @@ import {
   Loader2,
   Plus,
   Smartphone,
+  Users,
   Trash2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -26,6 +27,14 @@ export type Empresa = {
 };
 
 export type WhatsNumero = { id: string; numero: string; apelido: string | null };
+export type Membro = {
+  id: string;
+  membro_id: string;
+  papel: 'dono' | 'funcionario';
+  nome: string | null;
+  ativo: boolean;
+  created_at: string;
+};
 export type IngestToken = {
   id: string;
   label: string | null;
@@ -69,6 +78,8 @@ export default function ConfiguracoesForm({
   botNumero,
   tokens,
   appUrl,
+  membros,
+  donoId,
 }: {
   userId: string;
   empresa: Empresa | null;
@@ -77,10 +88,58 @@ export default function ConfiguracoesForm({
   botNumero: string;
   tokens: IngestToken[];
   appUrl: string;
+  membros: Membro[];
+  donoId: string;
 }) {
   const router = useRouter();
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // ---- Equipe ----
+  const [eqEmail, setEqEmail] = useState('');
+  const [eqNome, setEqNome] = useState('');
+  const [eqBusy, setEqBusy] = useState(false);
+  const [eqMsg, setEqMsg] = useState<{ t: 'ok' | 'err'; s: string } | null>(null);
+  const [eqLink, setEqLink] = useState<string | null>(null);
+
+  async function addFuncionario(e: FormEvent) {
+    e.preventDefault();
+    setEqBusy(true);
+    setEqMsg(null);
+    setEqLink(null);
+    try {
+      const r = await fetch('/api/equipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: eqEmail.trim(), nome: eqNome.trim() || null }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) {
+        setEqMsg({ t: 'err', s: j.erro || 'Não foi possível adicionar.' });
+      } else {
+        setEqMsg({ t: 'ok', s: j.msg || 'Funcionário adicionado.' });
+        if (j.link) setEqLink(j.link);
+        setEqEmail('');
+        setEqNome('');
+        router.refresh();
+      }
+    } catch {
+      setEqMsg({ t: 'err', s: 'Erro de conexão.' });
+    }
+    setEqBusy(false);
+  }
+
+  async function removeFuncionario(id: string) {
+    const r = await fetch(`/api/equipe?id=${id}`, { method: 'DELETE' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) {
+      window.alert(j.erro || 'Não foi possível remover.');
+      return;
+    }
+    router.refresh();
+  }
+
+  const funcionarios = membros.filter((m) => m.papel === 'funcionario' && m.ativo);
 
   const [tokLabel, setTokLabel] = useState('');
   const [tokGerando, setTokGerando] = useState(false);
@@ -526,6 +585,82 @@ export default function ConfiguracoesForm({
           </button>
         </div>
         {tokErro && <p className="cl-form-err" style={{ marginTop: 8 }}>{tokErro}</p>}
+      </section>
+
+      <section className="cfg-bloco">
+        <h2 className="cfg-h2">
+          <Users size={16} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />
+          Equipe
+        </h2>
+        <p className="cfg-hint">
+          Funcionários entram com login próprio e só veem <strong>vender</strong>, cadastrar produto
+          e o total do que venderam no dia. Não acessam o caixa, orçamentos nem estas configurações.
+        </p>
+
+        <div className="cfg-nums">
+          {funcionarios.length === 0 && (
+            <p className="cfg-nums-vazio">Nenhum funcionário ainda.</p>
+          )}
+          {funcionarios.map((m) => (
+            <div className="cfg-num" key={m.id}>
+              <span className="cfg-num-info">
+                <strong>{m.nome || 'Funcionário'}</strong>
+                <small>desde {new Date(m.created_at).toLocaleDateString('pt-BR')}</small>
+              </span>
+              <button
+                type="button"
+                className="cfg-num-x"
+                aria-label="Remover funcionário"
+                onClick={() => removeFuncionario(m.id)}
+              >
+                <Trash2 size={14} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="cfg-num-add">
+          <input
+            className="cl-input"
+            type="email"
+            value={eqEmail}
+            onChange={(e) => setEqEmail(e.target.value)}
+            placeholder="e-mail do funcionário"
+          />
+          <input
+            className="cl-input"
+            value={eqNome}
+            onChange={(e) => setEqNome(e.target.value)}
+            placeholder="Nome (ex.: Maria)"
+          />
+          <button type="button" className="btn secondary" onClick={addFuncionario} disabled={eqBusy}>
+            {eqBusy ? (
+              <Loader2 size={16} className="cl-spin" aria-hidden="true" />
+            ) : (
+              <Plus size={16} aria-hidden="true" />
+            )}
+            Adicionar
+          </button>
+        </div>
+        {eqLink && (
+          <div className="cfg-tok-novo" style={{ marginTop: 10 }}>
+            <p>Envie este link para a pessoa entrar (uso único):</p>
+            <div className="cfg-tok-code">
+              <code>{eqLink}</code>
+              <button type="button" onClick={() => navigator.clipboard?.writeText(eqLink)}>
+                <Copy size={14} /> Copiar
+              </button>
+            </div>
+          </div>
+        )}
+        {eqMsg && (
+          <p
+            className={eqMsg.t === 'ok' ? 'login-mensagem' : 'cl-form-err'}
+            style={{ marginTop: 8, fontSize: 13 }}
+          >
+            {eqMsg.s}
+          </p>
+        )}
       </section>
 
       {erro && <p className="cl-form-err">{erro}</p>}

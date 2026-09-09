@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 import { STATUS_LABEL, type PedidoStatus } from '../PedidosList';
+import AprovacaoLink from './AprovacaoLink';
 
 export type Pedido = {
   id: string;
@@ -22,7 +23,16 @@ export type Pedido = {
   observacoes: string | null;
   origem: string;
   origem_texto: string | null;
+  forma_pagamento: string | null;
 };
+
+const FORMAS_PAGAMENTO: { valor: string; rotulo: string }[] = [
+  { valor: 'dinheiro', rotulo: 'Dinheiro' },
+  { valor: 'pix', rotulo: 'Pix' },
+  { valor: 'debito', rotulo: 'Débito' },
+  { valor: 'credito', rotulo: 'Crédito' },
+  { valor: 'outro', rotulo: 'Outro' },
+];
 
 export type ItemPed = {
   id: string;
@@ -37,6 +47,17 @@ export type ItemPed = {
 export type ClienteOpc = { id: string; nome: string };
 export type ServicoOpc = { id: string; nome: string; preco: number; unidade: string };
 export type Arquivo = { id: string; nome: string; mime: string; url: string | null };
+export type Aprovacao = {
+  id: string;
+  token: string;
+  status: 'pendente' | 'aprovado' | 'recusado' | 'alteracao';
+  comentario: string | null;
+  respondente: string | null;
+  respondido_em: string | null;
+  revogado: boolean;
+  expira_em: string;
+  created_at: string;
+};
 
 type Linha = {
   key: string;
@@ -72,12 +93,16 @@ export default function PedidoEditor({
   clientes,
   servicos,
   arquivos,
+  aprovacao,
+  appUrl,
 }: {
   pedido: Pedido;
   itens: ItemPed[];
   clientes: ClienteOpc[];
   servicos: ServicoOpc[];
   arquivos: Arquivo[];
+  aprovacao: Aprovacao | null;
+  appUrl: string;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -85,6 +110,7 @@ export default function PedidoEditor({
   const [clienteId, setClienteId] = useState(pedido.cliente_id ?? '');
   const [clienteNome, setClienteNome] = useState(pedido.cliente_nome ?? '');
   const [prazo, setPrazo] = useState(pedido.prazo ?? '');
+  const [formaPagamento, setFormaPagamento] = useState(pedido.forma_pagamento ?? '');
   const [desconto, setDesconto] = useState(String(pedido.desconto ?? ''));
   const [observacoes, setObservacoes] = useState(pedido.observacoes ?? '');
   const [status, setStatus] = useState<PedidoStatus>(pedido.status);
@@ -154,6 +180,7 @@ export default function PedidoEditor({
         cliente_nome:
           clienteNome.trim() || clientes.find((c) => c.id === clienteId)?.nome || null,
         prazo: prazo || null,
+        forma_pagamento: formaPagamento || null,
         desconto: toNumber(desconto),
         observacoes: observacoes.trim() || null,
       })
@@ -282,6 +309,13 @@ export default function PedidoEditor({
         </div>
       )}
 
+      <AprovacaoLink
+        pedidoId={pedido.id}
+        aprovacaoInicial={aprovacao}
+        appUrl={appUrl}
+        clienteNome={clienteNome}
+      />
+
       <div className="oc-status-row">
         {FLUXO.map((s) => (
           <button
@@ -333,6 +367,21 @@ export default function PedidoEditor({
             value={prazo}
             onChange={(e) => setPrazo(e.target.value)}
           />
+        </label>
+        <label className="cl-field">
+          <span className="cl-label">Forma de pagamento</span>
+          <select
+            className="cl-input"
+            value={formaPagamento}
+            onChange={(e) => setFormaPagamento(e.target.value)}
+          >
+            <option value="">— não informada —</option>
+            {FORMAS_PAGAMENTO.map((f) => (
+              <option key={f.valor} value={f.valor}>
+                {f.rotulo}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

@@ -1,5 +1,46 @@
 const $ = (id) => document.getElementById(id);
-let arquivo = null;
+
+let imagens = []; // candidatas vindas da conversa
+const escolhidas = new Set(); // índices selecionados
+
+function pintarInfo() {
+  const info = $('arte-info');
+  if (!imagens.length) return;
+  info.textContent = escolhidas.size
+    ? `${escolhidas.size} de ${imagens.length} selecionada${escolhidas.size > 1 ? 's' : ''}. Só as marcadas vão pro pedido.`
+    : `${imagens.length} ${imagens.length > 1 ? 'imagens' : 'imagem'} na conversa. Toque para escolher a arte.`;
+}
+
+function montarImagens() {
+  const grid = $('imgs');
+  const info = $('arte-info');
+  grid.innerHTML = '';
+
+  if (!imagens.length) {
+    info.textContent = '';
+    const vazio = document.createElement('div');
+    vazio.className = 'arte-vazio';
+    vazio.textContent = 'Nenhuma imagem encontrada na conversa. Você anexa a arte depois, pelo site.';
+    grid.appendChild(vazio);
+    return;
+  }
+
+  imagens.forEach((img, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'imgpick';
+    b.innerHTML =
+      '<img src="data:' + img.mime + ';base64,' + img.base64 + '" alt="" /><span class="tick">✓</span>';
+    b.addEventListener('click', () => {
+      if (escolhidas.has(i)) escolhidas.delete(i);
+      else escolhidas.add(i);
+      b.classList.toggle('on', escolhidas.has(i));
+      pintarInfo();
+    });
+    grid.appendChild(b);
+  });
+  pintarInfo();
+}
 
 function linhaItem(desc = '', qtd = 1) {
   const div = document.createElement('div');
@@ -35,17 +76,8 @@ chrome.runtime.sendMessage({ type: 'pegarDados' }, (resp) => {
     .find(Boolean);
   $('itens').appendChild(linhaItem(primeira ? primeira.slice(0, 120) : '', d.qtdSug || 1));
 
-  if (d.arquivo && d.arquivo.base64) {
-    arquivo = d.arquivo;
-    const box = $('arte');
-    box.hidden = false;
-    box.innerHTML =
-      '<img src="data:' +
-      d.arquivo.mime +
-      ';base64,' +
-      d.arquivo.base64 +
-      '" alt="arte" /><span>Arte do cliente será anexada</span>';
-  }
+  imagens = Array.isArray(d.imagens) ? d.imagens : [];
+  montarImagens();
 });
 
 $('add').addEventListener('click', () => $('itens').appendChild(linhaItem()));
@@ -59,13 +91,18 @@ $('criar').addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Enviando…';
 
+  const valor = Number($('valor').value) || 0;
+  const arquivos = [...escolhidas].sort((a, b) => a - b).map((i) => imagens[i]);
+
   const pedido = {
     cliente: $('cliente').value.trim() || undefined,
     itens: coletarItens(),
+    valor: valor > 0 ? valor : undefined,
     prazo: $('prazo').value || undefined,
+    forma_pagamento: $('forma').value || undefined,
     observacoes: $('obs').value.trim() || undefined,
     texto: $('conversa').textContent.slice(0, 5000),
-    arquivo: arquivo || undefined,
+    arquivos: arquivos.length ? arquivos : undefined,
   };
 
   chrome.runtime.sendMessage({ type: 'enviar', pedido }, (r) => {
@@ -77,7 +114,9 @@ $('criar').addEventListener('click', async () => {
       return;
     }
     msg.className = 'msg ok';
-    msg.textContent = '✅ Pedido #' + r.numero + ' criado' + (r.arquivo ? ' (com arte)' : '') + '.';
+    const nArq = r.arquivos ?? (r.arquivo ? 1 : 0);
+    msg.textContent =
+      '✅ Pedido #' + r.numero + ' criado' + (nArq ? ` (${nArq} ${nArq > 1 ? 'imagens' : 'imagem'})` : '') + '.';
     if (r.url) {
       const a = document.createElement('a');
       a.href = r.url;

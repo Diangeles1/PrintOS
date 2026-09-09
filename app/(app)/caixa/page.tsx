@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
+import { requireDono } from '@/lib/equipe';
 
 import CaixaView, { type Movimento, type Sessao } from './CaixaView';
 
 export default async function CaixaPage() {
+  await requireDono();
   const supabase = await createClient();
 
   const { data: abertaRows, error } = await supabase

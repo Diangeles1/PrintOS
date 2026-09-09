@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
+import { requireDono } from '@/lib/equipe';
 
 import ProducaoBoard, { type PedidoCard } from './ProducaoBoard';
 
 export default async function ProducaoPage() {
+  await requireDono();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('pedidos')
