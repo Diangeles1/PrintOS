@@ -101,9 +101,10 @@ for (const st of statusOrc) {
     .select('id').single();
   const linhas = Array.from({ length: 1 + Math.floor(Math.random() * 3) }, () => {
     const s = pick(servicos);
-    return { orcamento_id: o.id, descricao: s.nome, quantidade: 1 + Math.floor(Math.random() * 200), preco_unitario: s.preco };
+    return { ...U, orcamento_id: o.id, descricao: s.nome, quantidade: 1 + Math.floor(Math.random() * 30), preco_unitario: s.preco };
   });
-  await a.from('orcamento_itens').insert(linhas);
+  const { error: eOi } = await a.from('orcamento_itens').insert(linhas);
+  if (eOi) throw new Error(`orcamento_itens: ${eOi.message}`);
   nOrc++;
 }
 console.log(`  ${nOrc} orçamentos`);
@@ -128,9 +129,10 @@ for (const st of plano) {
     .select('id').single();
   const linhas = Array.from({ length: 1 + Math.floor(Math.random() * 3) }, () => {
     const s = pick(servicos);
-    return { pedido_id: p.id, descricao: s.nome, quantidade: 1 + Math.floor(Math.random() * 300), preco_unitario: s.preco };
+    return { ...U, pedido_id: p.id, descricao: s.nome, quantidade: 1 + Math.floor(Math.random() * 40), preco_unitario: s.preco };
   });
-  await a.from('pedido_itens').insert(linhas);
+  const { error: ePi } = await a.from('pedido_itens').insert(linhas);
+  if (ePi) throw new Error(`pedido_itens: ${ePi.message}`);
   nPed++;
 }
 console.log(`  ${nPed} pedidos com itens`);
