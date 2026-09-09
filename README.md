@@ -4,7 +4,7 @@
 
 # PrintOS
 
-**Sistema de gestão para gráficas — do arquivo à entrega, tudo em um só lugar.**
+**Sistema de gestão para gráficas: do arquivo à entrega, tudo em um só lugar.**
 
 Pedidos, orçamentos, produção, caixa e catálogo em uma interface única.
 Cada gráfica com seus próprios dados, isolados no banco.
@@ -49,15 +49,15 @@ Cada gráfica com seus próprios dados, isolados no banco.
 Gráfica rápida vive de muitos pedidos pequenos, prazos curtos e informação espalhada
 por caderno, WhatsApp e planilha. O **PrintOS** junta tudo isso em um sistema só:
 o pedido entra, vira produção, o cliente aprova a arte por um link, e o balcão fecha
-a venda — com o histórico sempre à mão.
+a venda, com o histórico sempre à mão.
 
-- **Para quem:** gráficas rápidas, copiadoras e estúdios de comunicação visual — do balcão à entrega.
+- **Para quem:** gráficas rápidas, copiadoras e estúdios de comunicação visual, do balcão à entrega.
 - **O que resolve:** centraliza pedidos, orçamentos, clientes, catálogo de preços, produção e caixa; reduz retrabalho e "pedido perdido".
 - **Multi-empresa:** cada gráfica (conta) enxerga somente os próprios dados. O isolamento é garantido no banco por *Row Level Security*, testado tabela a tabela.
 - **Papéis:** **dono** (acesso total) e **funcionário** (só a Venda Rápida e o próprio total do dia).
 
 > O PrintOS organiza a operação da gráfica. **Não processa pagamentos, não movimenta
-> dinheiro da empresa e não funciona como carteira ou gateway** — os valores de caixa
+> dinheiro da empresa e não funciona como carteira ou gateway.** Os valores de caixa
 > são apenas registro de conferência do balcão.
 
 ---
@@ -67,7 +67,7 @@ a venda — com o histórico sempre à mão.
 ### Dashboard
 
 Resumo do dia assim que entra: entregues hoje (R$), pedidos em aberto, atrasados
-(em vermelho quando há) e orçamentos aguardando resposta — com os últimos pedidos logo abaixo.
+(em vermelho quando há) e orçamentos aguardando resposta, com os últimos pedidos logo abaixo.
 
 <p align="center">
   <img src="docs/screenshots/dashboard.png" width="100%" alt="Dashboard com KPIs e últimos pedidos" />
@@ -78,7 +78,7 @@ Resumo do dia assim que entra: entregues hoje (R$), pedidos em aberto, atrasados
 Lista de pedidos com filtro por status, total, contagem de itens e a origem de cada um
 (**manual**, **venda rápida** ou **WhatsApp**). O editor de pedido tem itens do catálogo
 ou livres, prazo, forma de pagamento, miniaturas da arte e o link de aprovação do cliente.
-A **Produção** é um quadro kanban: _aguardando arte → em produção → pronto → entregue_.
+A **Produção** é um quadro kanban: _aguardando arte, em produção, pronto, entregue_.
 
 <p align="center">
   <img src="docs/screenshots/pedidos.png" width="49%" alt="Lista de pedidos" />
@@ -88,7 +88,7 @@ A **Produção** é um quadro kanban: _aguardando arte → em produção → pro
 ### Orçamentos
 
 Editor com numeração automática, itens do catálogo e itens livres, desconto, controle de
-status (_rascunho → enviado → aprovado / recusado_) e um **documento pronto para impressão / PDF**
+status (_rascunho, enviado, aprovado ou recusado_) e um **documento pronto para impressão / PDF**
 com a identidade da gráfica. Orçamento aprovado vira pedido com um clique.
 
 <p align="center">
@@ -99,7 +99,7 @@ com a identidade da gráfica. Orçamento aprovado vira pedido com um clique.
 ### Venda Rápida e Caixa
 
 **Venda Rápida** é o PDV de balcão: toca nos itens do catálogo, ajusta a quantidade e
-finaliza — cria o pedido já entregue e, se houver caixa aberto, lança a entrada.
+finaliza. Cria o pedido já entregue e, se houver caixa aberto, lança a entrada.
 O **Caixa** controla uma sessão por vez, com entradas, saídas e fechamento com conferência
 de valor esperado.
 
@@ -114,7 +114,7 @@ Duas frentes complementares:
 
 - **Extensão do WhatsApp Web** (`extensao/`, MV3): um botão flutuante "＋ Pedido" na tela do
   WhatsApp Web abre um formulário rápido e cria o pedido no PrintOS por um endpoint autenticado
-  por token — a extensão só cria pedido e anexa arte, não lê contatos nem apaga nada.
+  por token. A extensão só cria pedido e anexa arte, não lê contatos nem apaga nada.
 - **Aprovação de arte por link público** (`/aprovar/[token]`): a gráfica gera um link, manda
   no WhatsApp junto com a arte; o cliente abre, confere e responde **Aprovar / Solicitar
   alteração / Recusar**. Aprovado, o pedido anda sozinho para produção.
@@ -137,7 +137,7 @@ Ambos têm um **catálogo sugerido** de base gráfica, inserido com um clique.
 
 ### Configurações
 
-Identidade da empresa (nome, documento, contato e logo — que aparece no documento do
+Identidade da empresa (nome, documento, contato e logo, que aparece no documento do
 orçamento), padrões de orçamento (validade e condições), integração com o WhatsApp,
 tokens da extensão e a lista de funcionários.
 
@@ -149,7 +149,7 @@ tokens da extensão e a lista de funcionários.
 
 Um painel interno (`/admin`) restrito por **lista de e-mails** (`SUPERADMIN_EMAILS`),
 para suporte à operação: lista de contas, detalhe de conta e ações (confirmar e-mail,
-gerar magic link, editar dados, suspender) — com **auditoria append-only** de tudo.
+gerar magic link, editar dados, suspender), com **auditoria append-only** de tudo.
 
 ---
 
@@ -175,12 +175,12 @@ gerar magic link, editar dados, suspender) — com **auditoria append-only** de 
 
 | Camada | Stack |
 |---|---|
-| **Framework** | [Next.js 16](https://nextjs.org) — App Router, Route Groups, Middleware, Server Components |
+| **Framework** | [Next.js 16](https://nextjs.org): App Router, Route Groups, Middleware, Server Components |
 | **UI** | [React 19](https://react.dev), TypeScript (strict), CSS global sob medida (sem Tailwind), ícones [lucide-react](https://lucide.dev), fonte [Manrope](https://fonts.google.com/specimen/Manrope) via `next/font` |
-| **Backend / Dados** | [Supabase](https://supabase.com) — PostgreSQL, Auth por cookie (`@supabase/ssr`), Row Level Security, Storage, funções e triggers no banco |
+| **Backend / Dados** | [Supabase](https://supabase.com): PostgreSQL, Auth por cookie (`@supabase/ssr`), Row Level Security, Storage, funções e triggers no banco |
 | **Autenticação** | E-mail + senha, Google e Microsoft (OAuth PKCE) |
-| **Integrações** | WhatsApp Cloud API (webhook) · Extensão Chrome MV3 para o WhatsApp Web |
-| **Qualidade** | [Playwright](https://playwright.dev) (E2E) · suíte de testes em Node puro · GitHub Actions (CI) |
+| **Integrações** | WhatsApp Cloud API (webhook); extensão Chrome MV3 para o WhatsApp Web |
+| **Qualidade** | [Playwright](https://playwright.dev) (E2E), suíte de testes em Node puro, GitHub Actions (CI) |
 | **Deploy** | [Vercel](https://vercel.com) + projeto Supabase gerenciado |
 
 <p>
@@ -198,20 +198,20 @@ gerar magic link, editar dados, suspender) — com **auditoria append-only** de 
 
 ```mermaid
 flowchart TD
-    B["Navegador — app Next.js"]
+    B["Navegador (app Next.js)"]
     EXT["Extensao Chrome MV3 (WhatsApp Web)"]
     PUB["Pagina publica de aprovacao de arte"]
 
     subgraph NEXT["Next.js 16 na Vercel"]
-        MW["proxy.ts — middleware: sessao, rotas publicas, CSP/HSTS, gate /admin"]
+        MW["proxy.ts: middleware de sessao, rotas publicas, CSP/HSTS, gate /admin"]
         RSC["Server Components e Server Actions"]
         API["Route Handlers: /api/ingest, /api/aprovacao, /api/whatsapp, /api/admin"]
     end
 
     subgraph SUPA["Supabase"]
-        AUTH["Auth — e-mail/senha, Google, Microsoft"]
-        DB[("PostgreSQL — RLS por user_id, triggers, funcoes")]
-        ST["Storage — bucket publico de logos e bucket privado de artes"]
+        AUTH["Auth: e-mail/senha, Google, Microsoft"]
+        DB[("PostgreSQL: RLS por user_id, triggers, funcoes")]
+        ST["Storage: bucket publico de logos e bucket privado de artes"]
     end
 
     WA["WhatsApp Cloud API"]
@@ -227,8 +227,8 @@ flowchart TD
     AUTH -. cookies .- MW
 ```
 
-- **Frontend:** Next.js App Router. Páginas internas ficam no grupo de rotas `app/(app)/`, atrás de um layout com barra lateral e topo. Estilo é um CSS global com classes por prefixo (`.ax-*`, `.pl-*`, `.cl-*`, …).
-- **Camada de acesso:** `lib/supabase/` expõe três clientes — browser, server (com cookies) e admin (`service_role`, só no servidor). O middleware `proxy.ts` valida a sessão, libera as rotas públicas, injeta cabeçalhos de segurança e bloqueia `/admin`.
+- **Frontend:** Next.js App Router. Páginas internas ficam no grupo de rotas `app/(app)/`, atrás de um layout com barra lateral e topo. Estilo é um CSS global com classes por prefixo (`.ax-*`, `.pl-*`, `.cl-*`, etc.).
+- **Camada de acesso:** `lib/supabase/` expõe três clientes: browser, server (com cookies) e admin (`service_role`, só no servidor). O middleware `proxy.ts` valida a sessão, libera as rotas públicas, injeta cabeçalhos de segurança e bloqueia `/admin`.
 - **Banco:** 16 migrações versionadas em `supabase/migrations/`. Toda tabela é `user_id`-escopada com RLS `auth.uid() = user_id`; totais são colunas geradas / triggers; operações entre tabelas usam funções `security definer`; `anon` não tem grant.
 - **Integrações:** endpoints dedicados para a extensão (`/api/ingest/pedido`, token com hash SHA-256 no banco, rate limit e allowlist de MIME), para a aprovação pública (`/api/aprovacao/[token]`) e para o webhook do WhatsApp.
 
@@ -245,14 +245,14 @@ printos/
 │   │   └── clientes/  servicos/  materiais/  configuracoes/
 │   ├── admin/              # console do SuperADMIN + auditoria
 │   ├── aprovar/[token]/    # página pública de aprovação de arte
-│   ├── api/                # ingest · aprovacao · whatsapp · admin · equipe
+│   ├── api/                # ingest, aprovacao, whatsapp, admin, equipe
 │   ├── auth/callback/      # troca do code OAuth (PKCE)
 │   ├── login/  boas-vindas/  redefinir-senha/
 │   └── layout.tsx  page.tsx  globals.css
 ├── lib/
 │   ├── supabase/          # clientes browser / server / admin
 │   ├── admin/  equipe.ts  catalogo.ts  whatsapp.ts
-├── supabase/migrations/   # 0001…0016 — schema, RLS, triggers, funções
+├── supabase/migrations/   # 0001 a 0016: schema, RLS, triggers, funções
 ├── extensao/              # extensão Chrome MV3 para o WhatsApp Web
 ├── e2e/                   # testes Playwright
 ├── scripts/               # testes em Node, seed, simulador, automações
@@ -273,8 +273,8 @@ npm install
 ```
 
 Crie o arquivo `.env.local` (veja [Configuração](#configuração)) e aplique as migrações
-de `supabase/migrations/` no seu projeto Supabase — pelo **SQL Editor** do painel ou pela
-CLI, em ordem (`0001` → `0016`).
+de `supabase/migrations/` no seu projeto Supabase, pelo **SQL Editor** do painel ou pela
+CLI, em ordem (`0001` a `0016`).
 
 ```bash
 npm run dev
@@ -292,7 +292,7 @@ npm run seed:demo -- voce@email.com
 
 ## Configuração
 
-Variáveis de ambiente (`.env.local`) — os nomes vêm de [`.env.example`](.env.example).
+Variáveis de ambiente (`.env.local`). Os nomes vêm de [`.env.example`](.env.example).
 **Nunca** versione o `.env.local` nem cole valores reais em lugar nenhum.
 
 | Variável | Obrigatória | Para quê |
@@ -300,14 +300,14 @@ Variáveis de ambiente (`.env.local`) — os nomes vêm de [`.env.example`](.env
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | URL do projeto Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | Chave pública (anon) do Supabase |
 | `NEXT_PUBLIC_APP_URL` | ✅ | URL pública do app, usada nos links enviados ao cliente |
-| `SUPABASE_SERVICE_ROLE_KEY` | — | Chave `service_role` — **só no servidor**. Habilita webhook, ingest e admin |
-| `WHATSAPP_TOKEN` · `WHATSAPP_PHONE_ID` | — | Credenciais da WhatsApp Cloud API (Meta) |
-| `WHATSAPP_VERIFY_TOKEN` · `WHATSAPP_APP_SECRET` | — | Verificação e assinatura do webhook do WhatsApp |
-| `NEXT_PUBLIC_WHATSAPP_BOT_NUMERO` | — | Número do bot exibido em Configurações |
-| `SUPERADMIN_EMAILS` | — | E-mails (separados por vírgula) com acesso a `/admin`. Vazio desativa o painel |
+| `SUPABASE_SERVICE_ROLE_KEY` | opcional | Chave `service_role`, só no servidor. Habilita webhook, ingest e admin |
+| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | opcional | Credenciais da WhatsApp Cloud API (Meta) |
+| `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | opcional | Verificação e assinatura do webhook do WhatsApp |
+| `NEXT_PUBLIC_WHATSAPP_BOT_NUMERO` | opcional | Número do bot exibido em Configurações |
+| `SUPERADMIN_EMAILS` | opcional | E-mails (separados por vírgula) com acesso a `/admin`. Vazio desativa o painel |
 
 ```dotenv
-# .env.local — exemplo (preencha com os seus valores)
+# .env.local (exemplo, preencha com os seus valores)
 NEXT_PUBLIC_SUPABASE_URL=https://SEU-PROJETO.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -323,7 +323,7 @@ está em [`docs/deploy.md`](docs/deploy.md); a configuração da Meta em [`docs/
 ## Testes
 
 Suíte em Node puro (sem dependência nova) + Playwright. Precisam de `.env.local` com a
-`service_role` e criam/apagam usuários `@printos.test` no seu projeto — rode contra um
+`service_role` e criam/apagam usuários `@printos.test` no seu projeto. Rode contra um
 projeto de **staging** quando possível.
 
 ```bash
@@ -351,7 +351,7 @@ rodam quando os segredos do Supabase estão configurados no repositório.
 
 ## Roadmap
 
-Baseado em `docs/deploy.md` e nas pendências do código — sujeito a mudança.
+Baseado em `docs/deploy.md` e nas pendências do código. Sujeito a mudança.
 
 - [x] Núcleo: pedidos, orçamentos, produção, caixa, venda rápida, cadastros
 - [x] Aprovação de arte por link público
@@ -382,7 +382,7 @@ seguindo o prefixo da área. Mudança de schema entra como uma nova migração n
 
 ## Licença
 
-Projeto **proprietário** — `package.json` marca `"private": true` e não há licença
+Projeto **proprietário**: o `package.json` marca `"private": true` e não há licença
 open-source definida. Todos os direitos reservados ao mantenedor. Para uso, cópia ou
 distribuição, fale com o autor.
 
