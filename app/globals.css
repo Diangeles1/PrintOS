@@ -250,9 +250,9 @@ th { font-size: 13px; color: #6a7890; }
 .pl-stage {
   position: absolute;
   z-index: 1;
-  right: -6%;
+  right: -8%;
   bottom: -4%;
-  width: min(60%, 620px);
+  width: min(70%, 740px);
   aspect-ratio: 1 / 1;
   pointer-events: none;
 }
@@ -262,7 +262,7 @@ th { font-size: 13px; color: #6a7890; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: min(52vh, 560px);
+  font-size: min(62vh, 660px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
@@ -376,9 +376,9 @@ th { font-size: 13px; color: #6a7890; }
 
 .pl-mascot {
   position: absolute;
-  right: clamp(-90px, -1vw, 30px);
+  right: clamp(-110px, -1.5vw, 20px);
   bottom: 0;
-  width: clamp(300px, 33vw, 470px);
+  width: clamp(340px, 38vw, 545px);
   height: auto;
   z-index: 2;
   pointer-events: none;
@@ -738,7 +738,7 @@ th { font-size: 13px; color: #6a7890; }
   .pl-left { flex-basis: 52%; max-width: 52%; }
   .pl-card { width: min(520px, 100%); }
   .pl-features { gap: 14px; }
-  .pl-mascot { width: clamp(300px, 34vw, 420px); right: clamp(-40px, 1vw, 20px); }
+  .pl-mascot { width: clamp(330px, 39vw, 480px); right: clamp(-60px, 0vw, 10px); }
   .pl-social button { font-size: 12.5px; gap: 8px; }
   .pl-foot-l span:last-child { display: none; }
 }
