@@ -106,6 +106,13 @@ export default function LoginPage() {
   // carregamento continuaria travado e bloquearia o formulário — aqui a
   // gente limpa esse estado quando a página volta a ficar visível.
   useEffect(() => {
+    // Callback do OAuth voltou com falha na troca do code por sessão.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('erro') === 'oauth') {
+      setErros({ geral: 'Não foi possível concluir o login com o provedor. Tente novamente.' });
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+
     const destravar = () => {
       setOauth(null);
       setCarregando(false);
@@ -220,7 +227,7 @@ export default function LoginPage() {
     setOauth(provider);
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/dashboard` },
     });
     if (error || !data?.url) {
       setOauth(null);

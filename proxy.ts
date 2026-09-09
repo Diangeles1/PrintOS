@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Adicionei "/" porque sua página inicial (Abrir sistema / Testar venda
 // rápida) parece ser pensada pra ser pública. Se não for o caso, é só
 // remover "/" desta lista.
-const ROTAS_PUBLICAS = ["/login", "/", "/redefinir-senha"];
+const ROTAS_PUBLICAS = ["/login", "/", "/redefinir-senha", "/auth"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
