@@ -8,13 +8,7 @@ PrintOS é uma assistente empresarial para gráficas que centraliza pedidos, cli
 
 As alterações abaixo foram identificadas diretamente no repositório:
 
-- `pp/(app)/configuracoes/page.tsx`
-- `app/(app)/orcamentos/OrcamentosList.tsx`
-- `app/(app)/orcamentos/[id]/imprimir/page.tsx`
-- `app/(app)/orcamentos/page.tsx`
-- `app/globals.css`
-- `app/(app)/configuracoes/ConfiguracoesForm.tsx`
-- `supabase/migrations/0008_empresa.sql`
+- Alterações identificadas no estado atual do projeto.
 
 ## Direção do produto
 
