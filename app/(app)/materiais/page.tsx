@@ -1,7 +1,18 @@
-import EmBreve from '@/app/_components/EmBreve';
+import { createClient } from '@/lib/supabase/server';
 
-export default function MateriaisPage() {
+import MateriaisView, { type Material } from './MateriaisView';
+
+export default async function MateriaisPage() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('materiais')
+    .select('*')
+    .order('nome', { ascending: true });
+
   return (
-    <EmBreve title="Materiais" desc="Materiais, bobinas, custos e estoque." />
+    <MateriaisView
+      initial={(data as Material[] | null) ?? []}
+      erroCarregar={error ? error.message : null}
+    />
   );
 }
