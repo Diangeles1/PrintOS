@@ -131,7 +131,13 @@ export default function ClientesView({
 
     setSalvando(false);
     if (resp.error) {
-      setErroForm(`Não foi possível salvar. ${resp.error.message}`);
+      if (resp.error.code === '23505') {
+        setErroForm('Já existe um cliente com esse documento.');
+      } else if (resp.error.code === '23514') {
+        setErroForm('Algum campo ficou fora do formato aceito. Revise os dados.');
+      } else {
+        setErroForm(`Não foi possível salvar. ${resp.error.message}`);
+      }
       return;
     }
     setPainel(null);
