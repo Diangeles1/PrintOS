@@ -11,6 +11,7 @@ const ROTAS_PUBLICAS = [
   "/redefinir-senha",
   "/auth",
   "/api/whatsapp",
+  "/api/ingest",
 ];
 
 export async function proxy(request: NextRequest) {

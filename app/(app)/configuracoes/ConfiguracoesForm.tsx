@@ -2,7 +2,16 @@
 
 import { ChangeEvent, FormEvent, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImagePlus, Loader2, Plus, Smartphone, Trash2 } from 'lucide-react';
+import {
+  Check,
+  Copy,
+  ImagePlus,
+  KeyRound,
+  Loader2,
+  Plus,
+  Smartphone,
+  Trash2,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export type Empresa = {
@@ -17,6 +26,23 @@ export type Empresa = {
 };
 
 export type WhatsNumero = { id: string; numero: string; apelido: string | null };
+export type IngestToken = {
+  id: string;
+  label: string | null;
+  last_used_at: string | null;
+  created_at: string;
+};
+
+async function sha256Hex(s: string) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function gerarTokenTexto() {
+  const b = new Uint8Array(32);
+  crypto.getRandomValues(b);
+  return 'pit_' + [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
 
 function formataNumero(n: string) {
   const d = n.replace(/\D/g, '');
@@ -41,16 +67,54 @@ export default function ConfiguracoesForm({
   fallbackNome,
   numeros,
   botNumero,
+  tokens,
+  appUrl,
 }: {
   userId: string;
   empresa: Empresa | null;
   fallbackNome: string;
   numeros: WhatsNumero[];
   botNumero: string;
+  tokens: IngestToken[];
+  appUrl: string;
 }) {
   const router = useRouter();
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [tokLabel, setTokLabel] = useState('');
+  const [tokGerando, setTokGerando] = useState(false);
+  const [tokNovo, setTokNovo] = useState<string | null>(null);
+  const [tokCopiado, setTokCopiado] = useState(false);
+  const [tokErro, setTokErro] = useState<string | null>(null);
+
+  async function gerarToken() {
+    setTokErro(null);
+    setTokGerando(true);
+    const texto = gerarTokenTexto();
+    const hash = await sha256Hex(texto);
+    const { error } = await supabase
+      .from('ingest_tokens')
+      .insert({ token_hash: hash, label: tokLabel.trim() || null });
+    setTokGerando(false);
+    if (error) {
+      setTokErro(`Não foi possível gerar. ${error.message}`);
+      return;
+    }
+    setTokNovo(texto);
+    setTokCopiado(false);
+    setTokLabel('');
+    router.refresh();
+  }
+
+  async function revogarToken(id: string) {
+    const { error } = await supabase.from('ingest_tokens').delete().eq('id', id);
+    if (error) {
+      window.alert(`Não foi possível revogar. ${error.message}`);
+      return;
+    }
+    router.refresh();
+  }
 
   const [novoNum, setNovoNum] = useState('');
   const [novoApelido, setNovoApelido] = useState('');
@@ -376,6 +440,92 @@ export default function ConfiguracoesForm({
           </button>
         </div>
         {numErro && <p className="cl-form-err" style={{ marginTop: 8 }}>{numErro}</p>}
+      </section>
+
+      <section className="cfg-bloco">
+        <h2 className="cfg-h2">
+          <KeyRound size={16} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />
+          Extensão do WhatsApp Web
+        </h2>
+        <p className="cfg-hint">
+          Um token por dispositivo. Escopo mínimo: só criar pedido e anexar arte — não lê
+          clientes nem apaga nada. Revogue a qualquer momento.
+        </p>
+
+        {tokNovo && (
+          <div className="cfg-tok-novo">
+            <p>Copie agora — não dá pra ver de novo depois:</p>
+            <div className="cfg-tok-code">
+              <code>{tokNovo}</code>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText(tokNovo).then(() => setTokCopiado(true));
+                }}
+              >
+                {tokCopiado ? <Check size={14} /> : <Copy size={14} />}
+                {tokCopiado ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
+            {appUrl && (
+              <p className="cfg-tok-url">
+                URL do PrintOS para a extensão: <code>{appUrl}</code>
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="cfg-nums">
+          {tokens.length === 0 && !tokNovo && (
+            <p className="cfg-nums-vazio">Nenhum token ainda.</p>
+          )}
+          {tokens.map((t) => (
+            <div className="cfg-num" key={t.id}>
+              <span className="cfg-num-info">
+                <strong>{t.label || 'Sem apelido'}</strong>
+                <small>
+                  {t.last_used_at
+                    ? `Usado ${new Date(t.last_used_at).toLocaleDateString('pt-BR')}`
+                    : 'Nunca usado'}
+                  {' · criado '}
+                  {new Date(t.created_at).toLocaleDateString('pt-BR')}
+                </small>
+              </span>
+              <button
+                type="button"
+                className="cfg-num-x"
+                aria-label="Revogar token"
+                onClick={() => revogarToken(t.id)}
+              >
+                <Trash2 size={14} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="cfg-num-add">
+          <input
+            className="cl-input"
+            value={tokLabel}
+            onChange={(e) => setTokLabel(e.target.value)}
+            placeholder="Apelido (ex.: PC do balcão)"
+          />
+          <span />
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={gerarToken}
+            disabled={tokGerando}
+          >
+            {tokGerando ? (
+              <Loader2 size={16} className="cl-spin" aria-hidden="true" />
+            ) : (
+              <Plus size={16} aria-hidden="true" />
+            )}
+            Gerar token
+          </button>
+        </div>
+        {tokErro && <p className="cl-form-err" style={{ marginTop: 8 }}>{tokErro}</p>}
       </section>
 
       {erro && <p className="cl-form-err">{erro}</p>}

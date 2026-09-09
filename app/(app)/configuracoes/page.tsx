@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import ConfiguracoesForm, {
   type Empresa,
+  type IngestToken,
   type WhatsNumero,
 } from './ConfiguracoesForm';
 
@@ -10,11 +11,15 @@ export default async function ConfiguracoesPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [{ data: empresa }, { data: numeros }] = await Promise.all([
+  const [{ data: empresa }, { data: numeros }, { data: tokens }] = await Promise.all([
     supabase.from('empresa').select('*').maybeSingle(),
     supabase
       .from('whatsapp_numeros')
       .select('id, numero, apelido')
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('ingest_tokens')
+      .select('id, label, last_used_at, created_at')
       .order('created_at', { ascending: true }),
   ]);
 
@@ -35,6 +40,8 @@ export default async function ConfiguracoesPage() {
         fallbackNome={fallbackNome}
         numeros={(numeros as WhatsNumero[] | null) ?? []}
         botNumero={process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMERO ?? ''}
+        tokens={(tokens as IngestToken[] | null) ?? []}
+        appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ''}
       />
     </div>
   );

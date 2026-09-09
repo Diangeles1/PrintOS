@@ -2197,3 +2197,93 @@ th.oc-col-num { text-align: right; }
 @media (max-width: 640px) {
   .cfg-num-add { grid-template-columns: 1fr; }
 }
+
+/* ===== PrintOS — token da extensão ===== */
+.cfg-tok-novo {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #f3d9a8;
+  background: #fff8ec;
+  border-radius: 10px;
+}
+.cfg-tok-novo > p { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: #8a5a12; }
+.cfg-tok-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.cfg-tok-code code {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #0b1b3a;
+  word-break: break-all;
+}
+.cfg-tok-code button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #e4eaf3;
+  border-radius: 7px;
+  background: #f7f9fc;
+  color: #55657f;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.cfg-tok-code button:hover { background: #eef2ff; color: #175bff; }
+.cfg-tok-url { margin: 8px 0 0; font-size: 11.5px; color: #8a5a12; }
+.cfg-tok-url code {
+  font-family: ui-monospace, monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* ===== PrintOS — arte do pedido ===== */
+.pd-arqs { margin: 4px 0 16px; }
+.pd-arqs-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.pd-arq {
+  width: 120px;
+  border: 1px solid var(--ax-border, #e4eaf3);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.pd-arq:hover {
+  border-color: var(--ax-primary, #175bff);
+  box-shadow: 0 8px 18px -12px rgba(23, 91, 255, 0.4);
+}
+.pd-arq img { width: 100%; height: 84px; object-fit: cover; display: block; }
+.pd-arq-ico {
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f4f9;
+  font-size: 13px;
+  font-weight: 800;
+  color: #7a89a3;
+}
+.pd-arq-nome {
+  font-size: 11px;
+  color: #55657f;
+  padding: 6px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

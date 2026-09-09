@@ -166,7 +166,7 @@ export default function PedidosList({
                 <tr key={p.id} className="oc-row" onClick={() => router.push(`/pedidos/${p.id}`)}>
                   <td className="cl-nome">
                     #{p.numero}
-                    {p.origem === 'whatsapp' && (
+                    {(p.origem === 'whatsapp' || p.origem === 'whatsapp_ext') && (
                       <span className="pd-wa" title="Registrado pelo WhatsApp">
                         WhatsApp
                       </span>

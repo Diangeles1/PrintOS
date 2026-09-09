@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "PrintOS — Pedido do WhatsApp",
+  "version": "0.1.0",
+  "description": "Botão 'Pedido' dentro do WhatsApp Web: 1 clique registra o pedido no PrintOS com a conversa e a arte.",
+  "permissions": ["storage"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*"],
+  "host_permissions": ["https://web.whatsapp.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "action": { "default_title": "PrintOS — abrir opções", "default_popup": "options.html" },
+  "icons": {}
+}

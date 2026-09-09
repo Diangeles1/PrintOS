@@ -36,6 +36,7 @@ export type ItemPed = {
 
 export type ClienteOpc = { id: string; nome: string };
 export type ServicoOpc = { id: string; nome: string; preco: number; unidade: string };
+export type Arquivo = { id: string; nome: string; mime: string; url: string | null };
 
 type Linha = {
   key: string;
@@ -70,11 +71,13 @@ export default function PedidoEditor({
   itens,
   clientes,
   servicos,
+  arquivos,
 }: {
   pedido: Pedido;
   itens: ItemPed[];
   clientes: ClienteOpc[];
   servicos: ServicoOpc[];
+  arquivos: Arquivo[];
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -246,11 +249,37 @@ export default function PedidoEditor({
         </h1>
       </div>
 
-      {pedido.origem === 'whatsapp' && pedido.origem_texto && (
-        <details className="pd-msg">
-          <summary>Mensagem original do WhatsApp</summary>
-          <p>{pedido.origem_texto}</p>
-        </details>
+      {(pedido.origem === 'whatsapp' || pedido.origem === 'whatsapp_ext') &&
+        pedido.origem_texto && (
+          <details className="pd-msg">
+            <summary>Mensagem original do WhatsApp</summary>
+            <p>{pedido.origem_texto}</p>
+          </details>
+        )}
+
+      {arquivos.length > 0 && (
+        <div className="pd-arqs">
+          <span className="cl-label">Arte do cliente</span>
+          <div className="pd-arqs-grid">
+            {arquivos.map((a) => (
+              <a
+                key={a.id}
+                href={a.url ?? '#'}
+                target="_blank"
+                rel="noreferrer"
+                className="pd-arq"
+              >
+                {a.mime.startsWith('image/') && a.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.url} alt={a.nome} />
+                ) : (
+                  <span className="pd-arq-ico">PDF</span>
+                )}
+                <span className="pd-arq-nome">{a.nome}</span>
+              </a>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="oc-status-row">
