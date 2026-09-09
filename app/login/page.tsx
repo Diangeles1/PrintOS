@@ -1,45 +1,84 @@
 'use client';
 
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, FormEvent, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Manrope, IBM_Plex_Mono } from 'next/font/google';
+import { Manrope } from 'next/font/google';
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  LogIn,
+  Loader2,
+  FileCheck2,
+  Settings2,
+  PackageCheck,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 const manrope = Manrope({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
-  variable: '--lp-font-sans',
-  display: 'swap',
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--lp-font-mono',
+  variable: '--pl-font',
   display: 'swap',
 });
 
 type Modo = 'entrar' | 'cadastro' | 'recuperar';
-type Intro = 'hold' | 'play' | 'idle' | 'reduced';
+type Provedor = 'google' | 'azure';
+type Erros = { email?: string; senha?: string; empresa?: string; nome?: string; geral?: string };
 
-const FEATURES = [
-  'Envio de arquivos com pré-checagem automática',
-  'Aprovação de prova digital em minutos',
-  'Acompanhamento da produção em tempo real',
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const FEATURES: { icon: ReactNode; label: string }[] = [
+  { icon: <FileCheck2 size={20} strokeWidth={2} />, label: 'Envio e aprovação\nde provas digitais' },
+  {
+    icon: <Settings2 size={20} strokeWidth={2} />,
+    label: 'Acompanhamento\nda produção em tempo real',
+  },
+  { icon: <PackageCheck size={20} strokeWidth={2} />, label: 'Gestão completa\ndos seus pedidos' },
 ];
 
-function Wordmark({ tone }: { tone: 'light' | 'dark' }) {
+function GoogleIcon() {
   return (
-    <span className={`lp-wm lp-wm--${tone}`}>
-      <span className="lp-wm-text">
-        Print<span>OS</span>
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
+    </svg>
+  );
+}
+
+function MicrosoftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 21 21" aria-hidden="true">
+      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+    </svg>
+  );
+}
+
+function Wordmark({ className }: { className?: string }) {
+  return (
+    <span className={className}>
+      <span className="pl-wm-name">
+        Print<span className="pl-os">OS</span>
       </span>
-      <span className="lp-wm-dots" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-        <i />
-      </span>
+      <i className="pl-sq" aria-hidden="true" />
     </span>
   );
 }
@@ -52,57 +91,51 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [lembrar, setLembrar] = useState(true);
+  const [manterConectado, setManterConectado] = useState(true);
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [nomeEmpresa, setNomeEmpresa] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [oauth, setOauth] = useState<Provedor | null>(null);
+  const [erros, setErros] = useState<Erros>({});
   const [mensagem, setMensagem] = useState<string | null>(null);
-  const [intro, setIntro] = useState<Intro>('hold');
 
-  const emailRef = useRef<HTMLInputElement>(null);
+  const ocupado = carregando || oauth !== null;
 
-  // Replica a introdução do design: anima uma vez por navegador, respeita
-  // "prefers-reduced-motion" e foca o campo de e-mail quando a cena assenta.
-  useEffect(() => {
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    let seen = false;
-    try {
-      seen = localStorage.getItem('printos.intro.seen') === '1';
-    } catch {
-      seen = false;
-    }
-    const fase: Intro = reduce ? 'reduced' : seen ? 'idle' : 'play';
-    setIntro(fase);
-    if (!reduce) {
-      try {
-        localStorage.setItem('printos.intro.seen', '1');
-      } catch {
-        /* armazenamento indisponível — segue sem persistir */
-      }
-    }
-    const t = window.setTimeout(
-      () => emailRef.current?.focus({ preventScroll: true }),
-      fase === 'play' ? 1500 : 200,
-    );
-    return () => window.clearTimeout(t);
-  }, []);
+  function limpar(campo: keyof Erros) {
+    setErros((prev) => {
+      if (!prev[campo] && !prev.geral) return prev;
+      const next = { ...prev };
+      delete next[campo];
+      delete next.geral;
+      return next;
+    });
+  }
 
-  function trocarModo(novoModo: Modo) {
+  function irPara(novoModo: Modo) {
     setModo(novoModo);
-    setErro(null);
+    setErros({});
     setMensagem(null);
+    setMostrarSenha(false);
   }
 
   async function handleEntrar(e: FormEvent) {
     e.preventDefault();
-    setErro(null);
     setMensagem(null);
+    const next: Erros = {};
+    if (!email.trim()) next.email = 'Informe seu e-mail.';
+    else if (!EMAIL_RE.test(email.trim())) next.email = 'Digite um e-mail válido.';
+    if (!senha) next.senha = 'Informe sua senha.';
+    setErros(next);
+    if (Object.keys(next).length) return;
+
     setCarregando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: senha,
+    });
     setCarregando(false);
     if (error) {
-      setErro('E-mail ou senha inválidos.');
+      setErros({ geral: 'E-mail ou senha inválidos.' });
       return;
     }
     router.push('/dashboard');
@@ -111,19 +144,19 @@ export default function LoginPage() {
 
   async function handleCriarConta(e: FormEvent) {
     e.preventDefault();
-    setErro(null);
     setMensagem(null);
-    if (!nomeEmpresa.trim()) {
-      setErro('Informe o nome da sua gráfica.');
-      return;
-    }
-    if (senha.length < 8) {
-      setErro('A senha precisa ter pelo menos 8 caracteres.');
-      return;
-    }
+    const next: Erros = {};
+    if (!nomeEmpresa.trim()) next.empresa = 'Informe o nome da sua gráfica.';
+    if (!nomeCompleto.trim()) next.nome = 'Informe seu nome.';
+    if (!email.trim()) next.email = 'Informe seu e-mail.';
+    else if (!EMAIL_RE.test(email.trim())) next.email = 'Digite um e-mail válido.';
+    if (senha.length < 8) next.senha = 'A senha precisa ter pelo menos 8 caracteres.';
+    setErros(next);
+    if (Object.keys(next).length) return;
+
     setCarregando(true);
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password: senha,
       options: { data: { company_name: nomeEmpresa, full_name: nomeCompleto } },
     });
@@ -131,311 +164,377 @@ export default function LoginPage() {
     if (error) {
       const msg = error.message.toLowerCase();
       if (msg.includes('already registered') || msg.includes('already exists')) {
-        setErro('Não foi possível concluir o cadastro com esses dados.');
+        setErros({ geral: 'Não foi possível concluir o cadastro com esses dados.' });
       } else {
-        setErro(error.message);
+        setErros({ geral: error.message });
       }
       return;
     }
     setMensagem('Conta criada! Verifique seu e-mail para confirmar antes de entrar.');
-    trocarModo('entrar');
+    irPara('entrar');
   }
 
   async function handleRecuperar(e: FormEvent) {
     e.preventDefault();
-    setErro(null);
     setMensagem(null);
+    const next: Erros = {};
+    if (!email.trim()) next.email = 'Informe seu e-mail.';
+    else if (!EMAIL_RE.test(email.trim())) next.email = 'Digite um e-mail válido.';
+    setErros(next);
+    if (Object.keys(next).length) return;
+
     setCarregando(true);
-    await supabase.auth.resetPasswordForEmail(email, {
+    await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/redefinir-senha`,
     });
     setCarregando(false);
     setMensagem('Se esse e-mail existir, enviamos um link de recuperação.');
   }
 
-  const introClass =
-    intro === 'play'
-      ? 'is-play'
-      : intro === 'idle'
-        ? 'is-idle'
-        : intro === 'reduced'
-          ? 'is-reduced'
-          : '';
+  async function handleOAuth(provider: Provedor) {
+    setErros({});
+    setMensagem(null);
+    setOauth(provider);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) {
+      setOauth(null);
+      setErros({ geral: 'Não foi possível iniciar o login agora. Tente novamente.' });
+    }
+    // Em caso de sucesso o navegador é redirecionado para o provedor.
+  }
+
+  const titulo =
+    modo === 'entrar'
+      ? 'Bem-vindo de volta!'
+      : modo === 'cadastro'
+        ? 'Criar sua conta'
+        : 'Recuperar senha';
+
+  const subtitulo =
+    modo === 'entrar'
+      ? 'Acesse sua conta e continue acompanhando suas produções, aprovações e pedidos.'
+      : modo === 'cadastro'
+        ? 'Leva menos de um minuto para começar a organizar sua gráfica.'
+        : 'Enviaremos um link de redefinição para o seu e-mail cadastrado.';
 
   return (
-    <div className={`lp-root ${manrope.variable} ${plexMono.variable} ${introClass}`}>
-      <div className="lp-bg" aria-hidden="true" />
-      <div className="lp-halftone" aria-hidden="true" />
-      <div className="lp-rings" aria-hidden="true">
-        <span />
-        <span />
+    <div className={`pl-root ${manrope.variable}`}>
+      <div className="pl-bg" aria-hidden="true">
+        <div className="pl-dots" />
+        <div className="pl-shape pl-shape-1" />
+        <div className="pl-shape pl-shape-2" />
+        <div className="pl-shape pl-shape-3" />
       </div>
-      <div className="lp-cutmarks" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-        <i />
-        <i />
-        <i />
-        <i />
-        <i />
-      </div>
-      <div className="lp-fade" aria-hidden="true" />
 
-      <div className="lp-shell">
-        <section className="lp-intro">
-          <header className="lp-topbar">
-            <Wordmark tone="light" />
-            <span className="lp-topbar-divider" aria-hidden="true" />
-            <span className="lp-kicker">Central do cliente</span>
-          </header>
-
-          <div className="lp-lede">
-            <p className="lp-eyebrow">
-              <span aria-hidden="true" />
-              Portal do cliente
-            </p>
-            <h2>Do arquivo à entrega, tudo em um só lugar.</h2>
-            <ul className="lp-features">
-              {FEATURES.map((feature) => (
-                <li key={feature}>
-                  <span aria-hidden="true" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <div className="lp-mascot" aria-hidden="true">
-          <div className="lp-mascot-glow" />
-          <div className="lp-mascot-float">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/printos-mascote.png" alt="" className="lp-mascot-img" />
-          </div>
+      <aside className="pl-left">
+        <div className="pl-left-top">
+          <Wordmark className="pl-brand" />
+          <p className="pl-eyebrow">Central do cliente</p>
+          <span className="pl-rule" aria-hidden="true" />
         </div>
 
-        <section className="lp-panel">
-          <div className="lp-card">
-            <span className="lp-card-bar" aria-hidden="true" />
-            <span className="lp-card-scan" aria-hidden="true" />
+        <div className="pl-left-mid">
+          <h1 className="pl-headline">
+            Do arquivo à entrega, <span className="pl-accent">tudo</span> em um só lugar.
+          </h1>
+          <p className="pl-subhead">
+            Mais controle, mais agilidade, mais resultados para o seu negócio.
+          </p>
 
-            <div className="lp-card-brand">
-              <Wordmark tone="dark" />
-            </div>
+          <ul className="pl-features">
+            {FEATURES.map((f) => (
+              <li className="pl-feature" key={f.label}>
+                <span className="pl-feature-ico">{f.icon}</span>
+                <span className="pl-feature-text">
+                  {f.label.split('\n').map((line, i) => (
+                    <span key={i}>{line}</span>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/printos-mascote.png"
+          alt=""
+          aria-hidden="true"
+          className="pl-mascot"
+        />
+      </aside>
+
+      <main className="pl-right">
+        <div className="pl-mobile-logo">
+          <Wordmark className="pl-brand pl-brand-mobile" />
+        </div>
+
+        <div className="pl-card">
+          <header className="pl-card-head">
+            <Wordmark className="pl-card-logo" />
             {modo === 'entrar' && (
-              <>
-                <h1 className="lp-card-title">Bem-vindo</h1>
-                <p className="lp-card-text">
-                  Acesse sua conta para enviar arquivos, aprovar provas e acompanhar cada
-                  pedido.
-                </p>
+              <div className="pl-card-head-right">
+                <span>Novo por aqui?</span>
+                <button type="button" className="pl-btn-ghost" onClick={() => irPara('cadastro')}>
+                  Criar conta
+                </button>
+              </div>
+            )}
+            {modo !== 'entrar' && (
+              <div className="pl-card-head-right">
+                <span>Já tem conta?</span>
+                <button type="button" className="pl-btn-ghost" onClick={() => irPara('entrar')}>
+                  Entrar
+                </button>
+              </div>
+            )}
+          </header>
 
-                <form className="lp-form" onSubmit={handleEntrar}>
-                  <label className="lp-field">
-                    <span className="lp-label">E-mail</span>
-                    <input
-                      ref={emailRef}
-                      className="lp-input"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="nome@empresa.com.br"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </label>
+          <h2 className="pl-card-title">{titulo}</h2>
+          <p className="pl-card-sub">{subtitulo}</p>
 
-                  <label className="lp-field">
-                    <span className="lp-label lp-label--row">
-                      <span>Senha</span>
-                      <button
-                        type="button"
-                        className="lp-reveal"
-                        onClick={() => setMostrarSenha((v) => !v)}
-                      >
-                        {mostrarSenha ? 'Ocultar' : 'Mostrar'}
-                      </button>
-                    </span>
-                    <input
-                      className="lp-input"
-                      type={mostrarSenha ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      placeholder="Digite sua senha"
-                      value={senha}
-                      onChange={(e) => setSenha(e.target.value)}
-                      required
-                      minLength={8}
-                    />
-                  </label>
+          {erros.geral && <p className="pl-alert">{erros.geral}</p>}
+          {mensagem && <p className="pl-note">{mensagem}</p>}
 
-                  <div className="lp-row">
-                    <label className="lp-check">
-                      <input
-                        type="checkbox"
-                        checked={lembrar}
-                        onChange={(e) => setLembrar(e.target.checked)}
-                      />
-                      <span>Lembrar de mim</span>
-                    </label>
-                    <button
-                      type="button"
-                      className="lp-inline-link"
-                      onClick={() => trocarModo('recuperar')}
-                    >
-                      Esqueci minha senha
-                    </button>
-                  </div>
+          {modo === 'entrar' && (
+            <form className="pl-form" onSubmit={handleEntrar} noValidate>
+              <div className="pl-field">
+                <label className="pl-label" htmlFor="pl-email">
+                  E-mail
+                </label>
+                <div className="pl-input-wrap">
+                  <Mail className="pl-input-ico" size={18} aria-hidden="true" />
+                  <input
+                    id="pl-email"
+                    className={`pl-input ${erros.email ? 'is-error' : ''}`}
+                    type="email"
+                    autoComplete="email"
+                    placeholder="seu@e-mail.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); limpar('email'); }}
+                  />
+                </div>
+                {erros.email && <p className="pl-field-err">{erros.email}</p>}
+              </div>
 
-                  {erro && <p className="login-erro">{erro}</p>}
-                  {mensagem && <p className="login-mensagem">{mensagem}</p>}
-
-                  <button type="submit" className="lp-submit" disabled={carregando}>
-                    {carregando ? 'Entrando…' : 'Entrar'}
-                  </button>
-                </form>
-
-                <div className="lp-card-foot">
-                  <span>Ainda não tem acesso?</span>
-                  <button
-                    type="button"
-                    className="lp-inline-link"
-                    onClick={() => trocarModo('cadastro')}
-                  >
-                    Solicitar cadastro
+              <div className="pl-field">
+                <div className="pl-label pl-label-row">
+                  <label htmlFor="pl-senha">Senha</label>
+                  <button type="button" className="pl-forgot" onClick={() => irPara('recuperar')}>
+                    Esqueceu sua senha?
                   </button>
                 </div>
-              </>
-            )}
-
-            {modo === 'cadastro' && (
-              <>
-                <h1 className="lp-card-title">Solicitar cadastro</h1>
-                <p className="lp-card-text">Leva menos de um minuto.</p>
-
-                <form className="lp-form" onSubmit={handleCriarConta}>
-                  <label className="lp-field">
-                    <span className="lp-label">Nome da gráfica</span>
-                    <input
-                      className="lp-input"
-                      value={nomeEmpresa}
-                      onChange={(e) => setNomeEmpresa(e.target.value)}
-                      placeholder="Ex.: Gráfica Rápida"
-                      required
-                    />
-                  </label>
-
-                  <label className="lp-field">
-                    <span className="lp-label">Seu nome</span>
-                    <input
-                      className="lp-input"
-                      value={nomeCompleto}
-                      onChange={(e) => setNomeCompleto(e.target.value)}
-                      placeholder="Nome e sobrenome"
-                      required
-                    />
-                  </label>
-
-                  <label className="lp-field">
-                    <span className="lp-label">E-mail</span>
-                    <input
-                      className="lp-input"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="nome@empresa.com.br"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </label>
-
-                  <label className="lp-field">
-                    <span className="lp-label lp-label--row">
-                      <span>Senha</span>
-                      <button
-                        type="button"
-                        className="lp-reveal"
-                        onClick={() => setMostrarSenha((v) => !v)}
-                      >
-                        {mostrarSenha ? 'Ocultar' : 'Mostrar'}
-                      </button>
-                    </span>
-                    <input
-                      className="lp-input"
-                      type={mostrarSenha ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      placeholder="Mínimo de 8 caracteres"
-                      value={senha}
-                      onChange={(e) => setSenha(e.target.value)}
-                      required
-                      minLength={8}
-                    />
-                  </label>
-
-                  {erro && <p className="login-erro">{erro}</p>}
-                  {mensagem && <p className="login-mensagem">{mensagem}</p>}
-
-                  <button type="submit" className="lp-submit" disabled={carregando}>
-                    {carregando ? 'Enviando…' : 'Criar conta'}
-                  </button>
-                </form>
-
-                <div className="lp-card-foot">
-                  <span>Já tem acesso?</span>
+                <div className="pl-input-wrap">
+                  <Lock className="pl-input-ico" size={18} aria-hidden="true" />
+                  <input
+                    id="pl-senha"
+                    className={`pl-input ${erros.senha ? 'is-error' : ''}`}
+                    type={mostrarSenha ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="Digite sua senha"
+                    value={senha}
+                    onChange={(e) => { setSenha(e.target.value); limpar('senha'); }}
+                  />
                   <button
                     type="button"
-                    className="lp-inline-link"
-                    onClick={() => trocarModo('entrar')}
+                    className="pl-eye"
+                    onClick={() => setMostrarSenha((v) => !v)}
+                    aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
                   >
-                    Entrar
+                    {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-              </>
-            )}
+                {erros.senha && <p className="pl-field-err">{erros.senha}</p>}
+              </div>
 
-            {modo === 'recuperar' && (
-              <>
-                <h1 className="lp-card-title">Recuperar senha</h1>
-                <p className="lp-card-text">Enviamos um link pro seu e-mail cadastrado.</p>
+              <label className="pl-check">
+                <input
+                  type="checkbox"
+                  checked={manterConectado}
+                  onChange={(e) => setManterConectado(e.target.checked)}
+                />
+                <span>Manter-me conectado</span>
+              </label>
 
-                <form className="lp-form" onSubmit={handleRecuperar}>
-                  <label className="lp-field">
-                    <span className="lp-label">E-mail</span>
-                    <input
-                      className="lp-input"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="nome@empresa.com.br"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </label>
+              <button type="submit" className="pl-submit" disabled={ocupado}>
+                {carregando ? (
+                  <>
+                    <Loader2 size={18} className="pl-spin" aria-hidden="true" />
+                    Entrando...
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} aria-hidden="true" />
+                    Entrar na minha conta
+                  </>
+                )}
+              </button>
 
-                  {mensagem && <p className="login-mensagem">{mensagem}</p>}
+              <div className="pl-or">ou</div>
 
-                  <button type="submit" className="lp-submit" disabled={carregando}>
-                    {carregando ? 'Enviando…' : 'Enviar link de recuperação'}
-                  </button>
-                </form>
+              <div className="pl-social">
+                <button
+                  type="button"
+                  onClick={() => handleOAuth('google')}
+                  disabled={ocupado}
+                >
+                  {oauth === 'google' ? (
+                    <Loader2 size={16} className="pl-spin" aria-hidden="true" />
+                  ) : (
+                    <GoogleIcon />
+                  )}
+                  Entrar com o Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOAuth('azure')}
+                  disabled={ocupado}
+                >
+                  {oauth === 'azure' ? (
+                    <Loader2 size={16} className="pl-spin" aria-hidden="true" />
+                  ) : (
+                    <MicrosoftIcon />
+                  )}
+                  Entrar com a Microsoft
+                </button>
+              </div>
+            </form>
+          )}
 
-                <div className="lp-card-foot lp-card-foot--center">
+          {modo === 'cadastro' && (
+            <form className="pl-form" onSubmit={handleCriarConta} noValidate>
+              <div className="pl-field">
+                <label className="pl-label" htmlFor="pl-empresa">
+                  Nome da gráfica
+                </label>
+                <div className="pl-input-wrap">
+                  <input
+                    id="pl-empresa"
+                    className={`pl-input pl-input-plain ${erros.empresa ? 'is-error' : ''}`}
+                    placeholder="Ex.: Gráfica Rápida"
+                    value={nomeEmpresa}
+                    onChange={(e) => { setNomeEmpresa(e.target.value); limpar('empresa'); }}
+                  />
+                </div>
+                {erros.empresa && <p className="pl-field-err">{erros.empresa}</p>}
+              </div>
+
+              <div className="pl-field">
+                <label className="pl-label" htmlFor="pl-nome">
+                  Seu nome
+                </label>
+                <div className="pl-input-wrap">
+                  <input
+                    id="pl-nome"
+                    className={`pl-input pl-input-plain ${erros.nome ? 'is-error' : ''}`}
+                    placeholder="Nome e sobrenome"
+                    value={nomeCompleto}
+                    onChange={(e) => { setNomeCompleto(e.target.value); limpar('nome'); }}
+                  />
+                </div>
+                {erros.nome && <p className="pl-field-err">{erros.nome}</p>}
+              </div>
+
+              <div className="pl-field">
+                <label className="pl-label" htmlFor="pl-email-c">
+                  E-mail
+                </label>
+                <div className="pl-input-wrap">
+                  <Mail className="pl-input-ico" size={18} aria-hidden="true" />
+                  <input
+                    id="pl-email-c"
+                    className={`pl-input ${erros.email ? 'is-error' : ''}`}
+                    type="email"
+                    autoComplete="email"
+                    placeholder="seu@e-mail.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); limpar('email'); }}
+                  />
+                </div>
+                {erros.email && <p className="pl-field-err">{erros.email}</p>}
+              </div>
+
+              <div className="pl-field">
+                <label className="pl-label" htmlFor="pl-senha-c">
+                  Senha
+                </label>
+                <div className="pl-input-wrap">
+                  <Lock className="pl-input-ico" size={18} aria-hidden="true" />
+                  <input
+                    id="pl-senha-c"
+                    className={`pl-input ${erros.senha ? 'is-error' : ''}`}
+                    type={mostrarSenha ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="Mínimo de 8 caracteres"
+                    value={senha}
+                    onChange={(e) => { setSenha(e.target.value); limpar('senha'); }}
+                  />
                   <button
                     type="button"
-                    className="lp-inline-link"
-                    onClick={() => trocarModo('entrar')}
+                    className="pl-eye"
+                    onClick={() => setMostrarSenha((v) => !v)}
+                    aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
                   >
-                    Voltar para o login
+                    {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-              </>
-            )}
-          </div>
+                {erros.senha && <p className="pl-field-err">{erros.senha}</p>}
+              </div>
 
-          <p className="lp-tagline">Sua próxima impressão começa aqui.</p>
-        </section>
-      </div>
+              <button type="submit" className="pl-submit" disabled={ocupado}>
+                {carregando ? (
+                  <>
+                    <Loader2 size={18} className="pl-spin" aria-hidden="true" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} aria-hidden="true" />
+                    Criar conta
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {modo === 'recuperar' && (
+            <form className="pl-form" onSubmit={handleRecuperar} noValidate>
+              <div className="pl-field">
+                <label className="pl-label" htmlFor="pl-email-r">
+                  E-mail
+                </label>
+                <div className="pl-input-wrap">
+                  <Mail className="pl-input-ico" size={18} aria-hidden="true" />
+                  <input
+                    id="pl-email-r"
+                    className={`pl-input ${erros.email ? 'is-error' : ''}`}
+                    type="email"
+                    autoComplete="email"
+                    placeholder="seu@e-mail.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); limpar('email'); }}
+                  />
+                </div>
+                {erros.email && <p className="pl-field-err">{erros.email}</p>}
+              </div>
+
+              <button type="submit" className="pl-submit" disabled={ocupado}>
+                {carregando ? (
+                  <>
+                    <Loader2 size={18} className="pl-spin" aria-hidden="true" />
+                    Enviando...
+                  </>
+                ) : (
+                  'Enviar link de recuperação'
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
