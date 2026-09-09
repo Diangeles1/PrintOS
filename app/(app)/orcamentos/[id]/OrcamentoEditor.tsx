@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Printer, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export type Orcamento = {
@@ -453,6 +453,10 @@ export default function OrcamentoEditor({
       <div className="oc-acoes">
         <Link href="/orcamentos" className="btn secondary">
           Voltar
+        </Link>
+        <Link href={`/orcamentos/${orcamento.id}/imprimir`} className="btn secondary">
+          <Printer size={16} aria-hidden="true" />
+          Imprimir / PDF
         </Link>
         {status === 'aprovado' && (
           <button
