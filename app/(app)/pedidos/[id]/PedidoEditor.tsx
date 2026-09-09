@@ -20,6 +20,8 @@ export type Pedido = {
   subtotal: number;
   total: number;
   observacoes: string | null;
+  origem: string;
+  origem_texto: string | null;
 };
 
 export type ItemPed = {
@@ -243,6 +245,13 @@ export default function PedidoEditor({
           )}
         </h1>
       </div>
+
+      {pedido.origem === 'whatsapp' && pedido.origem_texto && (
+        <details className="pd-msg">
+          <summary>Mensagem original do WhatsApp</summary>
+          <p>{pedido.origem_texto}</p>
+        </details>
+      )}
 
       <div className="oc-status-row">
         {FLUXO.map((s) => (

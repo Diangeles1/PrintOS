@@ -6,7 +6,9 @@ export default async function PedidosPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('pedidos')
-    .select('id, numero, cliente_nome, status, prazo, total, created_at, pedido_itens(count)')
+    .select(
+      'id, numero, cliente_nome, status, prazo, total, origem, created_at, pedido_itens(count)',
+    )
     .order('created_at', { ascending: false });
 
   return (

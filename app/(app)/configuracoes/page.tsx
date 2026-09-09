@@ -1,13 +1,22 @@
 import { createClient } from '@/lib/supabase/server';
 
-import ConfiguracoesForm, { type Empresa } from './ConfiguracoesForm';
+import ConfiguracoesForm, {
+  type Empresa,
+  type WhatsNumero,
+} from './ConfiguracoesForm';
 
 export default async function ConfiguracoesPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: empresa } = await supabase.from('empresa').select('*').maybeSingle();
+  const [{ data: empresa }, { data: numeros }] = await Promise.all([
+    supabase.from('empresa').select('*').maybeSingle(),
+    supabase
+      .from('whatsapp_numeros')
+      .select('id, numero, apelido')
+      .order('created_at', { ascending: true }),
+  ]);
 
   const md = (user?.user_metadata ?? {}) as Record<string, unknown>;
   const fallbackNome =
@@ -24,6 +33,8 @@ export default async function ConfiguracoesPage() {
         userId={user?.id ?? ''}
         empresa={(empresa as Empresa | null) ?? null}
         fallbackNome={fallbackNome}
+        numeros={(numeros as WhatsNumero[] | null) ?? []}
+        botNumero={process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMERO ?? ''}
       />
     </div>
   );

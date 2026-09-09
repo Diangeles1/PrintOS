@@ -19,6 +19,7 @@ export type PedidoLista = {
   status: PedidoStatus;
   prazo: string | null;
   total: number;
+  origem: string;
   created_at: string;
   pedido_itens: { count: number }[];
 };
@@ -163,7 +164,14 @@ export default function PedidosList({
             <tbody>
               {lista.map((p) => (
                 <tr key={p.id} className="oc-row" onClick={() => router.push(`/pedidos/${p.id}`)}>
-                  <td className="cl-nome">#{p.numero}</td>
+                  <td className="cl-nome">
+                    #{p.numero}
+                    {p.origem === 'whatsapp' && (
+                      <span className="pd-wa" title="Registrado pelo WhatsApp">
+                        WhatsApp
+                      </span>
+                    )}
+                  </td>
                   <td>{p.cliente_nome || <span className="muted">Sem cliente</span>}</td>
                   <td>{dataBR(p.prazo)}</td>
                   <td className="mat-r mat-num">{p.pedido_itens?.[0]?.count ?? 0}</td>

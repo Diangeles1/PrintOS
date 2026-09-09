@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
+import { ImagePlus, Loader2, Plus, Smartphone, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export type Empresa = {
@@ -16,6 +16,18 @@ export type Empresa = {
   orcamento_condicoes: string | null;
 };
 
+export type WhatsNumero = { id: string; numero: string; apelido: string | null };
+
+function formataNumero(n: string) {
+  const d = n.replace(/\D/g, '');
+  if (d.length >= 12 && d.startsWith('55')) {
+    const ddd = d.slice(2, 4);
+    const resto = d.slice(4);
+    return `+55 (${ddd}) ${resto.slice(0, resto.length - 4)}-${resto.slice(-4)}`;
+  }
+  return `+${d}`;
+}
+
 const EXT: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
@@ -27,14 +39,58 @@ export default function ConfiguracoesForm({
   userId,
   empresa,
   fallbackNome,
+  numeros,
+  botNumero,
 }: {
   userId: string;
   empresa: Empresa | null;
   fallbackNome: string;
+  numeros: WhatsNumero[];
+  botNumero: string;
 }) {
   const router = useRouter();
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [novoNum, setNovoNum] = useState('');
+  const [novoApelido, setNovoApelido] = useState('');
+  const [addingNum, setAddingNum] = useState(false);
+  const [numErro, setNumErro] = useState<string | null>(null);
+
+  async function addNumero(e: FormEvent) {
+    e.preventDefault();
+    const digits = novoNum.replace(/\D/g, '');
+    if (!/^[1-9][0-9]{9,15}$/.test(digits)) {
+      setNumErro('Número inválido. Use DDI + DDD + número, ex.: 5579999990000.');
+      return;
+    }
+    setNumErro(null);
+    setAddingNum(true);
+    const { error } = await supabase
+      .from('whatsapp_numeros')
+      .insert({ numero: digits, apelido: novoApelido.trim() || null });
+    setAddingNum(false);
+    if (error) {
+      setNumErro(
+        error.code === '23505'
+          ? 'Esse número já está vinculado a uma conta.'
+          : `Não foi possível adicionar. ${error.message}`,
+      );
+      return;
+    }
+    setNovoNum('');
+    setNovoApelido('');
+    router.refresh();
+  }
+
+  async function removeNumero(id: string) {
+    const { error } = await supabase.from('whatsapp_numeros').delete().eq('id', id);
+    if (error) {
+      window.alert(`Não foi possível remover. ${error.message}`);
+      return;
+    }
+    router.refresh();
+  }
 
   const [nome, setNome] = useState(empresa?.nome ?? fallbackNome);
   const [documento, setDocumento] = useState(empresa?.documento ?? '');
@@ -243,6 +299,83 @@ export default function ConfiguracoesForm({
             />
           </label>
         </div>
+      </section>
+
+      <section className="cfg-bloco">
+        <h2 className="cfg-h2">
+          <Smartphone size={16} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />
+          Pedidos pelo WhatsApp
+        </h2>
+        <p className="cfg-hint">
+          Encaminhe a mensagem do cliente para o número do PrintOS. O bot monta o pedido e você
+          confirma com um toque — ele não conversa com o cliente.
+        </p>
+
+        {botNumero ? (
+          <p className="cfg-bot">
+            Contato do bot: <strong>{formataNumero(botNumero)}</strong> — salve nos contatos e
+            encaminhe os pedidos.
+          </p>
+        ) : (
+          <p className="cfg-bot cfg-bot--off">
+            Número do bot ainda não configurado (variável <code>NEXT_PUBLIC_WHATSAPP_BOT_NUMERO</code>).
+          </p>
+        )}
+
+        <div className="cfg-nums">
+          {numeros.length === 0 && (
+            <p className="cfg-nums-vazio">Nenhum número vinculado ainda.</p>
+          )}
+          {numeros.map((n) => (
+            <div className="cfg-num" key={n.id}>
+              <span className="cfg-num-info">
+                <strong>{formataNumero(n.numero)}</strong>
+                {n.apelido && <small>{n.apelido}</small>}
+              </span>
+              <button
+                type="button"
+                className="cfg-num-x"
+                aria-label={`Remover ${n.numero}`}
+                onClick={() => removeNumero(n.id)}
+              >
+                <Trash2 size={14} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="cfg-num-add">
+          <input
+            className="cl-input"
+            value={novoNum}
+            onChange={(e) => {
+              setNovoNum(e.target.value);
+              if (numErro) setNumErro(null);
+            }}
+            placeholder="55 79 99999-0000"
+            inputMode="tel"
+          />
+          <input
+            className="cl-input"
+            value={novoApelido}
+            onChange={(e) => setNovoApelido(e.target.value)}
+            placeholder="Apelido (ex.: Balcão, Maria)"
+          />
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={addNumero}
+            disabled={addingNum}
+          >
+            {addingNum ? (
+              <Loader2 size={16} className="cl-spin" aria-hidden="true" />
+            ) : (
+              <Plus size={16} aria-hidden="true" />
+            )}
+            Vincular
+          </button>
+        </div>
+        {numErro && <p className="cl-form-err" style={{ marginTop: 8 }}>{numErro}</p>}
       </section>
 
       {erro && <p className="cl-form-err">{erro}</p>}
