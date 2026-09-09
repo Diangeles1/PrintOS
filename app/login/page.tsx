@@ -10,9 +10,10 @@ import {
   EyeOff,
   LogIn,
   Loader2,
-  FileCheck2,
-  Settings2,
-  PackageCheck,
+  ShieldCheck,
+  CloudUpload,
+  SlidersHorizontal,
+  Package,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -29,13 +30,22 @@ type Erros = { email?: string; senha?: string; empresa?: string; nome?: string; 
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const FEATURES: { icon: ReactNode; label: string }[] = [
-  { icon: <FileCheck2 size={20} strokeWidth={2} />, label: 'Envio e aprovação\nde provas digitais' },
+const FEATURES: { icon: ReactNode; title: string; desc: string }[] = [
   {
-    icon: <Settings2 size={20} strokeWidth={2} />,
-    label: 'Acompanhamento\nda produção em tempo real',
+    icon: <CloudUpload size={20} strokeWidth={2} />,
+    title: 'Envie',
+    desc: 'Seus arquivos e provas digitais.',
   },
-  { icon: <PackageCheck size={20} strokeWidth={2} />, label: 'Gestão completa\ndos seus pedidos' },
+  {
+    icon: <SlidersHorizontal size={20} strokeWidth={2} />,
+    title: 'Acompanhe',
+    desc: 'Sua produção em tempo real.',
+  },
+  {
+    icon: <Package size={20} strokeWidth={2} />,
+    title: 'Receba',
+    desc: 'Seus pedidos organizados até a entrega.',
+  },
 ];
 
 function GoogleIcon() {
@@ -265,6 +275,11 @@ export default function LoginPage() {
       </div>
 
       <aside className="pl-left">
+        <div className="pl-stage" aria-hidden="true">
+          <span className="pl-stage-mono">P</span>
+          <span className="pl-stage-glow" />
+        </div>
+
         <div className="pl-left-top">
           <Wordmark className="pl-brand" />
           <p className="pl-eyebrow">Central do cliente</p>
@@ -273,20 +288,21 @@ export default function LoginPage() {
 
         <div className="pl-left-mid">
           <h1 className="pl-headline">
-            Do arquivo à entrega, <span className="pl-accent">tudo</span> em um só lugar.
+            Do arquivo à entrega.
+            <br />
+            <span className="pl-accent">Tudo</span> em um só lugar.
           </h1>
           <p className="pl-subhead">
-            Mais controle, mais agilidade, mais resultados para o seu negócio.
+            Mais controle, mais agilidade e mais resultados para o seu negócio.
           </p>
 
           <ul className="pl-features">
             {FEATURES.map((f) => (
-              <li className="pl-feature" key={f.label}>
+              <li className="pl-feature" key={f.title}>
                 <span className="pl-feature-ico">{f.icon}</span>
                 <span className="pl-feature-text">
-                  {f.label.split('\n').map((line, i) => (
-                    <span key={i}>{line}</span>
-                  ))}
+                  <span className="pl-feature-title">{f.title}</span>
+                  <span className="pl-feature-desc">{f.desc}</span>
                 </span>
               </li>
             ))}
@@ -300,7 +316,18 @@ export default function LoginPage() {
           aria-hidden="true"
           className="pl-mascot"
         />
+
+        <div className="pl-foot-l" aria-hidden="true">
+          <strong>PrintOS</strong>
+          <span>Central do Cliente</span>
+          <span>Do arquivo à entrega.</span>
+        </div>
       </aside>
+
+      <p className="pl-foot-r" aria-hidden="true">
+        Mais que impressões. Parcerias de verdade.
+        <span className="pl-foot-dash" />
+      </p>
 
       <main className="pl-right">
         <div className="pl-mobile-logo">
@@ -403,7 +430,7 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <LogIn size={18} aria-hidden="true" />
-                    Entrar na minha conta
+                    Entrar
                   </>
                 )}
               </button>
@@ -569,6 +596,11 @@ export default function LoginPage() {
             </form>
           )}
         </div>
+
+        <p className="pl-secure">
+          <ShieldCheck size={14} aria-hidden="true" />
+          Seus dados estão seguros conosco.
+        </p>
       </main>
     </div>
   );
