@@ -2019,3 +2019,96 @@ th.oc-col-num { text-align: right; }
   .doc { border: 0; border-radius: 0; padding: 0; }
   body { background: #fff; }
 }
+
+/* ===== PrintOS — Configurações ===== */
+.cfg { max-width: 720px; display: flex; flex-direction: column; gap: 18px; margin-top: 20px; }
+.cfg-bloco {
+  background: #fff;
+  border: 1px solid var(--ax-border, #e4eaf3);
+  border-radius: 14px;
+  padding: 22px;
+}
+.cfg-h2 { margin: 0 0 2px; font-size: 15px; font-weight: 800; color: var(--ax-ink, #0b1b3a); }
+.cfg-hint { margin: 0 0 16px; font-size: 12.5px; color: var(--ax-muted, #64748b); }
+.cfg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.cfg-col2 { grid-column: 1 / -1; }
+
+.cfg-logo-row { display: flex; gap: 16px; align-items: center; margin-bottom: 18px; }
+.cfg-logo {
+  width: 120px;
+  height: 76px;
+  border: 1px solid var(--ax-border, #e4eaf3);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f7f9fc;
+  flex: none;
+}
+.cfg-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.cfg-logo.is-vazio span { font-size: 11px; color: #9aa7bd; }
+.cfg-logo-acoes { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.cfg-logo-acoes .btn { display: inline-flex; align-items: center; gap: 7px; }
+.cfg-logo-remover {
+  border: 0;
+  background: none;
+  color: #b42318;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+}
+.cfg-logo-dica { font-size: 11px; color: #9aa7bd; }
+.cfg-acoes { display: flex; justify-content: flex-end; }
+.cfg-acoes .btn { display: inline-flex; align-items: center; gap: 8px; }
+
+@media (max-width: 640px) {
+  .cfg-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== Documento imprimível — refinamentos ===== */
+.doc-head-left { display: flex; flex-direction: column; gap: 4px; }
+.doc-logo { max-height: 64px; max-width: 240px; object-fit: contain; }
+.doc-empresa--sm { font-size: 13px !important; font-weight: 700 !important; }
+.doc-kicker {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #7a89a3;
+}
+.doc-head-right .doc-num { margin: 2px 0 6px; }
+
+.doc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.doc-badge { display: inline-flex; align-items: center; gap: 5px; opacity: 0.75; }
+.doc-badge-wm {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #55657f;
+}
+.doc-badge-wm b { color: #175bff; font-weight: 800; }
+.doc-badge i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #175bff, #19d9ff);
+}
+
+@media print {
+  .doc-logo { max-height: 60px; }
+}

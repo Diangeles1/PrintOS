@@ -2,13 +2,19 @@
 
 **Atualização: 09/09/2026**
 
-PrintOS é uma assistente empresarial para gráficas que centraliza pedidos, clientes, produção e visão operacional em uma experiência simples e organizada. A aplicação utiliza uma camada de dados integrada ao Supabase. Desenvolvido com TypeScript/React, TypeScript, CSS.
+PrintOS é uma assistente empresarial para gráficas que centraliza pedidos, clientes, produção e visão operacional em uma experiência simples e organizada. A aplicação utiliza uma camada de dados integrada ao Supabase. Desenvolvido com TypeScript/React, SQL, TypeScript, CSS.
 
 ## O que mudou
 
 As alterações abaixo foram identificadas diretamente no repositório:
 
-- `gitignore`
+- `pp/(app)/configuracoes/page.tsx`
+- `app/(app)/orcamentos/OrcamentosList.tsx`
+- `app/(app)/orcamentos/[id]/imprimir/page.tsx`
+- `app/(app)/orcamentos/page.tsx`
+- `app/globals.css`
+- `app/(app)/configuracoes/ConfiguracoesForm.tsx`
+- `supabase/migrations/0008_empresa.sql`
 
 ## Direção do produto
 

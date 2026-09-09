@@ -40,9 +40,13 @@ const data = (iso: string) =>
 export default function OrcamentosList({
   initial,
   erroCarregar,
+  validadeDias,
+  condicoesPadrao,
 }: {
   initial: OrcamentoLista[];
   erroCarregar: string | null;
+  validadeDias: number;
+  condicoesPadrao: string | null;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -59,9 +63,13 @@ export default function OrcamentosList({
 
   async function novo() {
     setCriando(true);
+    const validade =
+      validadeDias > 0
+        ? new Date(Date.now() + validadeDias * 86400000).toISOString().slice(0, 10)
+        : null;
     const { data: criado, error } = await supabase
       .from('orcamentos')
-      .insert({})
+      .insert({ validade, observacoes: condicoesPadrao })
       .select('id')
       .single();
     setCriando(false);

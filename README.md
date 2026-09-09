@@ -3,7 +3,7 @@
 <!-- PRINTOS-AUTO-START -->
 ## PrintOS
 
-> PrintOS é uma assistente empresarial para gráficas que centraliza pedidos, clientes, produção e visão operacional em uma experiência simples e organizada. A aplicação utiliza uma camada de dados integrada ao Supabase. Desenvolvido com TypeScript/React, TypeScript, CSS.
+> PrintOS é uma assistente empresarial para gráficas que centraliza pedidos, clientes, produção e visão operacional em uma experiência simples e organizada. A aplicação utiliza uma camada de dados integrada ao Supabase. Desenvolvido com TypeScript/React, SQL, TypeScript, CSS.
 
 ### Sobre o projeto
 
@@ -20,7 +20,7 @@ O PrintOS foi concebido como uma assistente empresarial para gráficas. A propos
 
 ### Tecnologias detectadas
 
-TypeScript/React, TypeScript, CSS
+TypeScript/React, SQL, TypeScript, CSS
 
 ### Status
 

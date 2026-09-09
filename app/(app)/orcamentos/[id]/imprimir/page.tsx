@@ -33,24 +33,26 @@ export default async function ImprimirOrcamento({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: orc }, { data: itens }, { data: userRes }] = await Promise.all([
-    supabase.from('orcamentos').select('*').eq('id', id).maybeSingle(),
-    supabase.from('orcamento_itens').select('*').eq('orcamento_id', id).order('ordem'),
-    supabase.auth.getUser(),
-  ]);
+  const [{ data: orc }, { data: itens }, { data: empresa }, { data: userRes }] =
+    await Promise.all([
+      supabase.from('orcamentos').select('*').eq('id', id).maybeSingle(),
+      supabase.from('orcamento_itens').select('*').eq('orcamento_id', id).order('ordem'),
+      supabase.from('empresa').select('*').maybeSingle(),
+      supabase.auth.getUser(),
+    ]);
 
   if (!orc) notFound();
 
   const md = (userRes.user?.user_metadata ?? {}) as Record<string, unknown>;
-  const empresa =
+  const nome =
+    empresa?.nome ||
     (typeof md.company_name === 'string' && md.company_name) ||
     (typeof md.display_name === 'string' && md.display_name) ||
-    'PrintOS';
-  const responsavel =
-    (typeof md.display_name === 'string' && md.display_name) ||
-    (typeof md.full_name === 'string' && md.full_name) ||
-    '';
-  const email = userRes.user?.email ?? '';
+    'Orçamento';
+  const contato = [empresa?.documento, empresa?.telefone, empresa?.endereco]
+    .filter(Boolean)
+    .join(' · ');
+  const logo = empresa?.logo_url as string | null;
 
   const lista = (itens as Item[] | null) ?? [];
   const criadoEm = dataBR(orc.created_at as string);
@@ -62,13 +64,19 @@ export default async function ImprimirOrcamento({
 
       <div className="doc">
         <header className="doc-head">
-          <div>
-            <p className="doc-empresa">{empresa}</p>
-            {responsavel && <p className="doc-sub">{responsavel}</p>}
-            {email && <p className="doc-sub">{email}</p>}
+          <div className="doc-head-left">
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="doc-logo" src={logo} alt={nome} />
+            ) : (
+              <p className="doc-empresa">{nome}</p>
+            )}
+            {logo && <p className="doc-empresa doc-empresa--sm">{nome}</p>}
+            {contato && <p className="doc-sub">{contato}</p>}
           </div>
           <div className="doc-head-right">
-            <p className="doc-num">Orçamento Nº {orc.numero}</p>
+            <p className="doc-kicker">Orçamento</p>
+            <p className="doc-num">Nº {orc.numero}</p>
             <p className="doc-sub">Emissão: {criadoEm}</p>
             {validade && <p className="doc-sub">Válido até: {validade}</p>}
             <p className="doc-sub">Situação: {STATUS[orc.status as string] ?? orc.status}</p>
@@ -129,13 +137,19 @@ export default async function ImprimirOrcamento({
 
         {orc.observacoes ? (
           <section className="doc-obs">
-            <span className="doc-label">Observações</span>
+            <span className="doc-label">Condições</span>
             <p>{orc.observacoes as string}</p>
           </section>
         ) : null}
 
         <footer className="doc-foot">
-          Documento gerado por {empresa} via PrintOS · {criadoEm}
+          <span>{nome} · {criadoEm}</span>
+          <span className="doc-badge">
+            <span className="doc-badge-wm">
+              Print<b>OS</b>
+            </span>
+            <i aria-hidden="true" />
+          </span>
         </footer>
       </div>
     </div>
