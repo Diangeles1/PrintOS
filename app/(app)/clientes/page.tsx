@@ -1,5 +1,18 @@
-import EmBreve from '@/app/_components/EmBreve';
+import { createClient } from '@/lib/supabase/server';
 
-export default function ClientesPage() {
-  return <EmBreve title="Clientes" desc="Cadastro e histórico de clientes." />;
+import ClientesView, { type Cliente } from './ClientesView';
+
+export default async function ClientesPage() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('*')
+    .order('nome', { ascending: true });
+
+  return (
+    <ClientesView
+      initial={(data as Cliente[] | null) ?? []}
+      erroCarregar={error ? error.message : null}
+    />
+  );
 }
