@@ -1628,3 +1628,26 @@ th.oc-col-num { text-align: right; }
   .oc-fim { grid-template-columns: 1fr; }
   .oc-totais { order: -1; }
 }
+
+/* ===== PrintOS — Pedidos (status) ===== */
+.pd-st { font-weight: 700; }
+.pd-st--aguardando_arte { background: #fff2dc; color: #9a5b00; border-color: #f3d9a8; }
+.pd-st--em_producao { background: #eef2ff; color: #3b52c4; border-color: #dbe2fb; }
+.pd-st--pronto { background: #e9f7f0; color: #0f7a45; border-color: #c9ecdb; }
+.pd-st--entregue { background: #e6f6f4; color: #0a6b5f; border-color: #c3e8e2; }
+.pd-st--cancelado { background: #fdecec; color: #b42318; border-color: #f6cecd; }
+
+.oc-chip--st.is-on.pd-st--aguardando_arte { background: #9a5b00; border-color: #9a5b00; color: #fff; }
+.oc-chip--st.is-on.pd-st--em_producao { background: #3b52c4; border-color: #3b52c4; color: #fff; }
+.oc-chip--st.is-on.pd-st--pronto { background: #0f7a45; border-color: #0f7a45; color: #fff; }
+.oc-chip--st.is-on.pd-st--entregue { background: #0a6b5f; border-color: #0a6b5f; color: #fff; }
+.oc-chip--st.is-on.pd-st--cancelado { background: #b42318; border-color: #b42318; color: #fff; }
+
+.pd-origem {
+  margin-left: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ax-primary, #175bff);
+  vertical-align: middle;
+}
+.pd-origem:hover { text-decoration: underline; }

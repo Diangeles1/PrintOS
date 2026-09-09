@@ -6,20 +6,23 @@ import Link from 'next/link';
 import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-export type Orcamento = {
+import { STATUS_LABEL, type PedidoStatus } from '../PedidosList';
+
+export type Pedido = {
   id: string;
   numero: number;
+  orcamento_id: string | null;
   cliente_id: string | null;
   cliente_nome: string | null;
-  status: 'rascunho' | 'enviado' | 'aprovado' | 'recusado';
-  validade: string | null;
+  status: PedidoStatus;
+  prazo: string | null;
   desconto: number;
   subtotal: number;
   total: number;
   observacoes: string | null;
 };
 
-export type ItemOrc = {
+export type ItemPed = {
   id: string;
   servico_id: string | null;
   descricao: string;
@@ -32,7 +35,7 @@ export type ItemOrc = {
 export type ClienteOpc = { id: string; nome: string };
 export type ServicoOpc = { id: string; nome: string; preco: number; unidade: string };
 
-type LinhaItem = {
+type Linha = {
   key: string;
   id: string | null;
   servico_id: string | null;
@@ -41,11 +44,12 @@ type LinhaItem = {
   preco_unitario: string;
 };
 
-const STATUS_FLUXO: { valor: Orcamento['status']; label: string }[] = [
-  { valor: 'rascunho', label: 'Rascunho' },
-  { valor: 'enviado', label: 'Enviado' },
-  { valor: 'aprovado', label: 'Aprovado' },
-  { valor: 'recusado', label: 'Recusado' },
+const FLUXO: PedidoStatus[] = [
+  'aguardando_arte',
+  'em_producao',
+  'pronto',
+  'entregue',
+  'cancelado',
 ];
 
 const brl = (v: number) =>
@@ -59,28 +63,28 @@ function toNumber(s: string, min = 0) {
 let seq = 0;
 const novaKey = () => `l${Date.now()}_${seq++}`;
 
-export default function OrcamentoEditor({
-  orcamento,
+export default function PedidoEditor({
+  pedido,
   itens,
   clientes,
   servicos,
 }: {
-  orcamento: Orcamento;
-  itens: ItemOrc[];
+  pedido: Pedido;
+  itens: ItemPed[];
   clientes: ClienteOpc[];
   servicos: ServicoOpc[];
 }) {
   const router = useRouter();
   const supabase = createClient();
 
-  const [clienteId, setClienteId] = useState(orcamento.cliente_id ?? '');
-  const [clienteNome, setClienteNome] = useState(orcamento.cliente_nome ?? '');
-  const [validade, setValidade] = useState(orcamento.validade ?? '');
-  const [desconto, setDesconto] = useState(String(orcamento.desconto ?? ''));
-  const [observacoes, setObservacoes] = useState(orcamento.observacoes ?? '');
-  const [status, setStatus] = useState<Orcamento['status']>(orcamento.status);
+  const [clienteId, setClienteId] = useState(pedido.cliente_id ?? '');
+  const [clienteNome, setClienteNome] = useState(pedido.cliente_nome ?? '');
+  const [prazo, setPrazo] = useState(pedido.prazo ?? '');
+  const [desconto, setDesconto] = useState(String(pedido.desconto ?? ''));
+  const [observacoes, setObservacoes] = useState(pedido.observacoes ?? '');
+  const [status, setStatus] = useState<PedidoStatus>(pedido.status);
 
-  const [linhas, setLinhas] = useState<LinhaItem[]>(
+  const [linhas, setLinhas] = useState<Linha[]>(
     itens.map((i) => ({
       key: novaKey(),
       id: i.id,
@@ -93,35 +97,28 @@ export default function OrcamentoEditor({
   const idsIniciais = useMemo(() => new Set(itens.map((i) => i.id)), [itens]);
 
   const [salvando, setSalvando] = useState(false);
-  const [mudandoStatus, setMudandoStatus] = useState<Orcamento['status'] | null>(null);
-  const [gerando, setGerando] = useState(false);
+  const [mudandoStatus, setMudandoStatus] = useState<PedidoStatus | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const subtotal = useMemo(
-    () =>
-      linhas.reduce(
-        (acc, l) => acc + toNumber(l.quantidade) * toNumber(l.preco_unitario),
-        0,
-      ),
+    () => linhas.reduce((acc, l) => acc + toNumber(l.quantidade) * toNumber(l.preco_unitario), 0),
     [linhas],
   );
   const total = Math.max(subtotal - toNumber(desconto), 0);
 
-  function setLinha(key: string, patch: Partial<LinhaItem>) {
+  function setLinha(key: string, patch: Partial<Linha>) {
     setLinhas((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
     setMsg(null);
   }
-
-  function addLinhaVazia() {
+  function addVazia() {
     setLinhas((ls) => [
       ...ls,
       { key: novaKey(), id: null, servico_id: null, descricao: '', quantidade: '1', preco_unitario: '0' },
     ]);
   }
-
-  function addDoCatalogo(servicoId: string) {
-    const s = servicos.find((x) => x.id === servicoId);
+  function addCatalogo(id: string) {
+    const s = servicos.find((x) => x.id === id);
     if (!s) return;
     setLinhas((ls) => [
       ...ls,
@@ -135,8 +132,7 @@ export default function OrcamentoEditor({
       },
     ]);
   }
-
-  function removerLinha(key: string) {
+  function remover(key: string) {
     setLinhas((ls) => ls.filter((l) => l.key !== key));
     setMsg(null);
   }
@@ -146,28 +142,27 @@ export default function OrcamentoEditor({
     setMsg(null);
     setSalvando(true);
 
-    const cabecalho = {
-      cliente_id: clienteId || null,
-      cliente_nome:
-        clienteNome.trim() ||
-        clientes.find((c) => c.id === clienteId)?.nome ||
-        null,
-      validade: validade || null,
-      desconto: toNumber(desconto),
-      observacoes: observacoes.trim() || null,
-    };
-    const upd = await supabase.from('orcamentos').update(cabecalho).eq('id', orcamento.id);
+    const upd = await supabase
+      .from('pedidos')
+      .update({
+        cliente_id: clienteId || null,
+        cliente_nome:
+          clienteNome.trim() || clientes.find((c) => c.id === clienteId)?.nome || null,
+        prazo: prazo || null,
+        desconto: toNumber(desconto),
+        observacoes: observacoes.trim() || null,
+      })
+      .eq('id', pedido.id);
     if (upd.error) {
       setSalvando(false);
       setErro(`Não foi possível salvar. ${upd.error.message}`);
       return;
     }
 
-    // itens: apaga removidos, atualiza existentes, insere novos
     const mantidos = new Set(linhas.filter((l) => l.id).map((l) => l.id as string));
     const remover = [...idsIniciais].filter((id) => !mantidos.has(id));
     if (remover.length) {
-      const del = await supabase.from('orcamento_itens').delete().in('id', remover);
+      const del = await supabase.from('pedido_itens').delete().in('id', remover);
       if (del.error) {
         setSalvando(false);
         setErro(`Erro ao remover itens. ${del.error.message}`);
@@ -186,7 +181,7 @@ export default function OrcamentoEditor({
         ordem: idx,
       }));
     if (existentes.length) {
-      const up = await supabase.from('orcamento_itens').upsert(existentes);
+      const up = await supabase.from('pedido_itens').upsert(existentes);
       if (up.error) {
         setSalvando(false);
         setErro(`Erro ao salvar itens. ${up.error.message}`);
@@ -198,7 +193,7 @@ export default function OrcamentoEditor({
     const novos = linhas
       .filter((l) => !l.id)
       .map((l, idx) => ({
-        orcamento_id: orcamento.id,
+        pedido_id: pedido.id,
         servico_id: l.servico_id,
         descricao: l.descricao.trim() || 'Item',
         quantidade: toNumber(l.quantidade, 0.001) || 1,
@@ -206,7 +201,7 @@ export default function OrcamentoEditor({
         ordem: base + idx,
       }));
     if (novos.length) {
-      const ins = await supabase.from('orcamento_itens').insert(novos);
+      const ins = await supabase.from('pedido_itens').insert(novos);
       if (ins.error) {
         setSalvando(false);
         setErro(`Erro ao adicionar itens. ${ins.error.message}`);
@@ -215,17 +210,14 @@ export default function OrcamentoEditor({
     }
 
     setSalvando(false);
-    setMsg('Orçamento salvo.');
+    setMsg('Pedido salvo.');
     router.refresh();
   }
 
-  async function mudarStatus(novo: Orcamento['status']) {
+  async function mudarStatus(novo: PedidoStatus) {
     if (novo === status) return;
     setMudandoStatus(novo);
-    const { error } = await supabase
-      .from('orcamentos')
-      .update({ status: novo })
-      .eq('id', orcamento.id);
+    const { error } = await supabase.from('pedidos').update({ status: novo }).eq('id', pedido.id);
     setMudandoStatus(null);
     if (error) {
       setErro(`Não foi possível mudar o status. ${error.message}`);
@@ -235,42 +227,33 @@ export default function OrcamentoEditor({
     router.refresh();
   }
 
-  async function gerarPedido() {
-    setErro(null);
-    setGerando(true);
-    const { data, error } = await supabase.rpc('gerar_pedido_do_orcamento', {
-      p_orcamento_id: orcamento.id,
-    });
-    setGerando(false);
-    if (error || !data) {
-      setErro(`Não foi possível gerar o pedido. ${error?.message ?? ''}`);
-      return;
-    }
-    router.push(`/pedidos/${data}`);
-  }
-
   return (
     <div className="page">
       <div className="oc-editor-top">
-        <Link href="/orcamentos" className="oc-voltar">
+        <Link href="/pedidos" className="oc-voltar">
           <ArrowLeft size={16} aria-hidden="true" />
-          Orçamentos
+          Pedidos
         </Link>
         <h1 className="page-title" style={{ margin: '6px 0 0' }}>
-          Orçamento #{orcamento.numero}
+          Pedido #{pedido.numero}
+          {pedido.orcamento_id && (
+            <Link href={`/orcamentos/${pedido.orcamento_id}`} className="pd-origem">
+              do orçamento
+            </Link>
+          )}
         </h1>
       </div>
 
       <div className="oc-status-row">
-        {STATUS_FLUXO.map((s) => (
+        {FLUXO.map((s) => (
           <button
-            key={s.valor}
+            key={s}
             type="button"
-            className={`oc-chip oc-chip--st oc-st--${s.valor}${status === s.valor ? ' is-on' : ''}`}
-            onClick={() => mudarStatus(s.valor)}
+            className={`oc-chip oc-chip--st pd-st--${s}${status === s ? ' is-on' : ''}`}
+            onClick={() => mudarStatus(s)}
             disabled={mudandoStatus !== null}
           >
-            {mudandoStatus === s.valor ? <Loader2 size={13} className="cl-spin" /> : s.label}
+            {mudandoStatus === s ? <Loader2 size={13} className="cl-spin" /> : STATUS_LABEL[s]}
           </button>
         ))}
       </div>
@@ -296,7 +279,7 @@ export default function OrcamentoEditor({
           </select>
         </label>
         <label className="cl-field">
-          <span className="cl-label">Nome no orçamento</span>
+          <span className="cl-label">Nome no pedido</span>
           <input
             className="cl-input"
             value={clienteNome}
@@ -305,12 +288,12 @@ export default function OrcamentoEditor({
           />
         </label>
         <label className="cl-field">
-          <span className="cl-label">Validade</span>
+          <span className="cl-label">Prazo de entrega</span>
           <input
             className="cl-input"
             type="date"
-            value={validade}
-            onChange={(e) => setValidade(e.target.value)}
+            value={prazo}
+            onChange={(e) => setPrazo(e.target.value)}
           />
         </label>
       </div>
@@ -324,7 +307,7 @@ export default function OrcamentoEditor({
             className="cl-input"
             value=""
             onChange={(e) => {
-              if (e.target.value) addDoCatalogo(e.target.value);
+              if (e.target.value) addCatalogo(e.target.value);
               e.target.value = '';
             }}
           >
@@ -335,7 +318,7 @@ export default function OrcamentoEditor({
               </option>
             ))}
           </select>
-          <button type="button" className="btn secondary" onClick={addLinhaVazia}>
+          <button type="button" className="btn secondary" onClick={addVazia}>
             <Plus size={16} aria-hidden="true" />
             Item livre
           </button>
@@ -389,11 +372,7 @@ export default function OrcamentoEditor({
                 </td>
                 <td>
                   <div className="cl-actions">
-                    <button
-                      type="button"
-                      aria-label="Remover item"
-                      onClick={() => removerLinha(l.key)}
-                    >
+                    <button type="button" aria-label="Remover item" onClick={() => remover(l.key)}>
                       <Trash2 size={15} aria-hidden="true" />
                     </button>
                   </div>
@@ -403,7 +382,7 @@ export default function OrcamentoEditor({
             {linhas.length === 0 && (
               <tr>
                 <td colSpan={5} className="cl-vazio">
-                  Nenhum item. Adicione do catálogo ou um item livre.
+                  Nenhum item.
                 </td>
               </tr>
             )}
@@ -419,7 +398,7 @@ export default function OrcamentoEditor({
             rows={4}
             value={observacoes}
             onChange={(e) => setObservacoes(e.target.value)}
-            placeholder="Condições, prazo de entrega, formas de pagamento…"
+            placeholder="Instruções de produção, acabamento…"
           />
         </label>
 
@@ -448,30 +427,16 @@ export default function OrcamentoEditor({
       </div>
 
       {erro && <p className="cl-form-err">{erro}</p>}
-      {msg && <p className="login-mensagem" style={{ fontSize: 13 }}>{msg}</p>}
+      {msg && (
+        <p className="login-mensagem" style={{ fontSize: 13 }}>
+          {msg}
+        </p>
+      )}
 
       <div className="oc-acoes">
-        <Link href="/orcamentos" className="btn secondary">
+        <Link href="/pedidos" className="btn secondary">
           Voltar
         </Link>
-        {status === 'aprovado' && (
-          <button
-            type="button"
-            className="btn"
-            onClick={gerarPedido}
-            disabled={gerando}
-            style={{ background: '#0f7a45' }}
-          >
-            {gerando ? (
-              <>
-                <Loader2 size={16} className="cl-spin" aria-hidden="true" />
-                Gerando…
-              </>
-            ) : (
-              'Gerar pedido'
-            )}
-          </button>
-        )}
         <button type="button" className="btn" onClick={salvar} disabled={salvando}>
           {salvando ? (
             <>
@@ -479,7 +444,7 @@ export default function OrcamentoEditor({
               Salvando…
             </>
           ) : (
-            'Salvar orçamento'
+            'Salvar pedido'
           )}
         </button>
       </div>
