@@ -274,12 +274,20 @@ export default function LoginPage() {
         <div className="pl-shape pl-shape-3" />
       </div>
 
-      <aside className="pl-left">
-        <div className="pl-stage" aria-hidden="true">
-          <span className="pl-stage-mono">P</span>
-          <span className="pl-stage-glow" />
-        </div>
+      <div className="pl-stage" aria-hidden="true">
+        <span className="pl-stage-mono">P</span>
+        <span className="pl-stage-glow" />
+      </div>
 
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/printos-mascote.png"
+        alt=""
+        aria-hidden="true"
+        className="pl-mascot"
+      />
+
+      <aside className="pl-left">
         <div className="pl-left-top">
           <Wordmark className="pl-brand" />
           <p className="pl-eyebrow">Central do cliente</p>
@@ -308,14 +316,6 @@ export default function LoginPage() {
             ))}
           </ul>
         </div>
-
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/printos-mascote.png"
-          alt=""
-          aria-hidden="true"
-          className="pl-mascot"
-        />
 
         <div className="pl-foot-l" aria-hidden="true">
           <strong>PrintOS</strong>
