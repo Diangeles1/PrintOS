@@ -11,3 +11,9 @@ out
 .env
 .env.*
 !.env.example
+
+# Protected by PrintOS Auto Publisher
+*.pem
+*.key
+credentials.json
+service-account*.json
