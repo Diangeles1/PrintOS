@@ -40,23 +40,44 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const usuarioLogado = data?.claims;
 
+  // Só o display_name conta: é o nome que o próprio usuário confirma na
+  // tela de boas-vindas. Assim a pergunta aparece uma única vez, mesmo
+  // pra quem já veio com nome do cadastro ou do Google/Microsoft.
+  const metadados = (usuarioLogado?.user_metadata ?? {}) as Record<string, unknown>;
+  const temNome =
+    typeof metadados.display_name === "string" && metadados.display_name.trim().length > 0;
+
   const rotaAtual = request.nextUrl.pathname;
   const ehRotaPublica = ROTAS_PUBLICAS.some((rota) =>
     rota === "/" ? rotaAtual === "/" : rotaAtual.startsWith(rota)
   );
+  const ehBoasVindas = rotaAtual === "/boas-vindas";
+
+  const redirecionar = (pathname: string) => {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname;
+    url.search = "";
+    return NextResponse.redirect(url);
+  };
 
   // Sem sessão válida, tentando acessar rota protegida → manda pro login.
   if (!usuarioLogado && !ehRotaPublica) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return redirecionar("/login");
   }
 
-  // Já logado, tentando acessar a tela de login → manda pro dashboard.
+  // Logado mas ainda sem nome → pergunta uma vez, na tela de boas-vindas.
+  if (usuarioLogado && !temNome && !ehBoasVindas && !ehRotaPublica) {
+    return redirecionar("/boas-vindas");
+  }
+
+  // Já tem nome e caiu em /boas-vindas → segue pro sistema.
+  if (usuarioLogado && temNome && ehBoasVindas) {
+    return redirecionar("/dashboard");
+  }
+
+  // Já logado, tentando acessar a tela de login → manda pra frente.
   if (usuarioLogado && rotaAtual === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    return redirecionar(temNome ? "/dashboard" : "/boas-vindas");
   }
 
   return response;

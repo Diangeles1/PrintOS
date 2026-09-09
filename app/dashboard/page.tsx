@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Sidebar from "@/app/_components/Sidebar";
+import { createClient } from "@/lib/supabase/server";
 
 const orders = [
   ["#1045", "João Silva", "Em produção", "08/09"],
@@ -8,12 +9,22 @@ const orders = [
   ["#1042", "Carlos Lima", "Aguardando arte", "09/09"],
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const md = (user?.user_metadata ?? {}) as Record<string, unknown>;
+  const nome =
+    (typeof md.display_name === "string" && md.display_name) ||
+    (typeof md.full_name === "string" && md.full_name) ||
+    "por aí";
+
   return (
     <div className="shell">
       <Sidebar />
       <main className="main">
-        <h1 className="page-title">Olá, João!</h1>
+        <h1 className="page-title">Olá, {nome}!</h1>
         <p className="muted">Aqui está o resumo de hoje.</p>
         <div className="cards">
           <Kpi title="Vendas hoje" value="R$ 1.842,50" />

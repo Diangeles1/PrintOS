@@ -784,3 +784,85 @@ th { font-size: 13px; color: #6a7890; }
 @media (max-width: 380px) {
   .pl-card-head-right span { display: none; }
 }
+
+/* ===== PrintOS — Boas-vindas (primeiro acesso) ===== */
+.bv-root {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(150deg, #071a3a 0%, #08295a 46%, #06152e 100%);
+  font-family: var(--pl-font), "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.bv-card {
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  padding: clamp(28px, 5vw, 38px);
+  color: #0b1b3a;
+  box-shadow: 0 30px 64px -26px rgba(3, 12, 33, 0.5);
+}
+.bv-eyebrow {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.bv-title {
+  margin: 0 0 8px;
+  font-size: clamp(22px, 2.4vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.bv-sub {
+  margin: 0 0 22px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #64748b;
+}
+.bv-input {
+  width: 100%;
+  height: 52px;
+  border: 1px solid #d8e1ef;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 15px;
+  color: #0b1b3a;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.bv-input::placeholder { color: #9aa7bd; }
+.bv-input:focus {
+  border-color: #175bff;
+  box-shadow: 0 0 0 4px rgba(23, 91, 255, 0.13);
+}
+.bv-err {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: #e5484d;
+}
+.bv-btn {
+  margin-top: 16px;
+  width: 100%;
+  height: 52px;
+  border: 0;
+  border-radius: 11px;
+  background: #175bff;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 12px 24px -10px rgba(23, 91, 255, 0.5);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+.bv-btn:hover:not(:disabled) { background: #1450e6; }
+.bv-btn:active:not(:disabled) { transform: translateY(1px); }
+.bv-btn:disabled { background: #a7bff5; box-shadow: none; cursor: default; }
+.bv-spin { animation: pl-spin 0.8s linear infinite; }
