@@ -17,3 +17,6 @@ out
 *.key
 credentials.json
 service-account*.json
+
+# Supabase CLI / Management API token (local only)
+.supabase/
