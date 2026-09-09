@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, ReactNode } from 'react';
+import { useState, useEffect, FormEvent, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Manrope } from 'next/font/google';
 import {
@@ -101,6 +101,29 @@ export default function LoginPage() {
 
   const ocupado = carregando || oauth !== null;
 
+  // O login social leva o usuário para fora da página. Se ele voltar pelo
+  // botão "voltar" do navegador (bfcache) ou reabrir a aba, o estado de
+  // carregamento continuaria travado e bloquearia o formulário — aqui a
+  // gente limpa esse estado quando a página volta a ficar visível.
+  useEffect(() => {
+    const destravar = () => {
+      setOauth(null);
+      setCarregando(false);
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) destravar();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') destravar();
+    };
+    window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
   function limpar(campo: keyof Erros) {
     setErros((prev) => {
       if (!prev[campo] && !prev.geral) return prev;
@@ -195,15 +218,20 @@ export default function LoginPage() {
     setErros({});
     setMensagem(null);
     setOauth(provider);
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/dashboard` },
     });
-    if (error) {
+    if (error || !data?.url) {
       setOauth(null);
-      setErros({ geral: 'Não foi possível iniciar o login agora. Tente novamente.' });
+      setErros({
+        geral: 'Não foi possível iniciar o login com esse provedor. Verifique se ele está habilitado.',
+      });
+      return;
     }
     // Em caso de sucesso o navegador é redirecionado para o provedor.
+    // Se em alguns segundos isso não acontecer, destrava o botão.
+    window.setTimeout(() => setOauth(null), 8000);
   }
 
   const titulo =
