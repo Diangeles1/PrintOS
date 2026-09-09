@@ -10,6 +10,7 @@ const TITULOS: Record<string, string> = {
   '/producao': 'Produção',
   '/caixa': 'Caixa',
   '/clientes': 'Clientes',
+  '/servicos': 'Serviços e Produtos',
   '/materiais': 'Materiais',
   '/configuracoes': 'Configurações',
 };

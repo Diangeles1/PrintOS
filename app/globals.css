@@ -1481,3 +1481,24 @@ select.cl-input {
 @media (max-width: 520px) {
   .cx-strip { grid-template-columns: 1fr; }
 }
+
+/* ===== PrintOS — Serviços ===== */
+.sv-inativo td { color: #9aa7bd; }
+.sv-inativo .cl-nome { color: #9aa7bd; }
+.sv-tag-off { background: #f1f4f9; color: #7a89a3; border-color: #e4eaf3; }
+.sv-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  color: #415270;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.sv-switch input {
+  width: 18px;
+  height: 18px;
+  accent-color: #175bff;
+  margin: 1px 0 0;
+  flex: none;
+}

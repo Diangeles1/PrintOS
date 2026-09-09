@@ -10,6 +10,7 @@ import {
   Factory,
   Users,
   Boxes,
+  Tags,
   Wallet,
   Settings,
   LogOut,
@@ -34,6 +35,7 @@ const GRUPOS: { titulo: string; itens: Item[] }[] = [
     titulo: 'Cadastros',
     itens: [
       { href: '/clientes', label: 'Clientes', icon: Users },
+      { href: '/servicos', label: 'Serviços', icon: Tags },
       { href: '/materiais', label: 'Materiais', icon: Boxes },
     ],
   },
